@@ -63,6 +63,32 @@ python cli.py list
 
 ---
 
+## Usar Jarvis para varios proyectos o asignaturas
+
+Puedes tener notebooks separados en NotebookLM — uno por asignatura o proyecto. Cada uno tiene sus propios apuntes y su historial de sesiones independiente.
+
+```powershell
+# Ver qué notebook está activo ahora
+python cli.py status
+
+# Cambiar a otro notebook (se crea en NotebookLM automáticamente si no existe)
+python cli.py use "Álgebra Lineal"
+python cli.py use "Proyecto TFG"
+
+# Añadir apuntes al notebook activo
+python cli.py add --file apuntes_algebra.md
+
+# Estudiar con ese notebook
+python app.py   # y cambia el notebook en ⚙️ Ajustes, o usa:
+python cli.py study --text
+```
+
+También puedes cambiar el notebook activo desde la interfaz web sin salir: **⚙️ Ajustes → Nombre del notebook**.
+
+Cada notebook guarda su progreso por separado en `~/.jarvis/memory/`.
+
+---
+
 ## Crear un tutor para otra asignatura
 
 Los tutores están en la carpeta `context/`. Crea un fichero `.md` con:
