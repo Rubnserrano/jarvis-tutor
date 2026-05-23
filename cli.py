@@ -1,4 +1,5 @@
 import asyncio
+from datetime import date
 
 import click
 
@@ -161,6 +162,89 @@ def study(notebook, text, context_file):
             click.echo("\n\nGuardando sesión...")
             session.save()
             break
+
+
+@cli.command()
+@click.option("--notebook", "-n", default=None, help="Notebook (default: active)")
+@click.option("--exam-date", "-d", default=None, help="Exam date YYYY-MM-DD")
+@click.option("--topics", "-t", default=None, help="Comma-separated list of topics")
+@click.option("--strong", default=None, help="Topics you already know well (comma-separated)")
+@click.option("--weak", default=None, help="Topics you struggle with (comma-separated)")
+def plan(notebook, exam_date, topics, strong, weak):
+    """Generate or show a study plan for an upcoming exam.
+
+    Example:
+      python cli.py plan --exam-date 2026-06-15 \\
+        --topics "Tema 1, Tema 2, Tema 3, Tema 4" \\
+        --strong "Tema 2, Tema 3" \\
+        --weak "Tema 1, Tema 4"
+    """
+    from jarvis.memory import get_memory
+    from jarvis.planner import generate_plan, get_plan, today_plan_summary
+
+    nb_name = notebook or get_active_notebook()
+
+    if not exam_date and not topics:
+        existing = get_plan(nb_name)
+        if existing:
+            summary = today_plan_summary(nb_name)
+            click.echo(f"Plan activo para: {nb_name}")
+            click.echo(f"Examen: {existing['exam_date']} | Temas: {', '.join(existing.get('topics', []))}")
+            if existing.get("strong_topics"):
+                click.echo(f"Fuertes: {', '.join(existing['strong_topics'])}")
+            if existing.get("weak_topics"):
+                click.echo(f"Débiles: {', '.join(existing['weak_topics'])}")
+            click.echo()
+            if summary:
+                click.echo(summary)
+            else:
+                click.echo("No hay sesión programada para hoy.")
+            return
+        click.echo("No hay plan activo. Usa --exam-date y --topics para crear uno.")
+        return
+
+    if not exam_date:
+        exam_date = click.prompt("Fecha del examen (YYYY-MM-DD)")
+    if not topics:
+        topics = click.prompt("Temas del examen (separados por coma)")
+
+    try:
+        parsed_date = date.fromisoformat(exam_date)
+    except ValueError:
+        raise click.ClickException(f"Fecha inválida: {exam_date}. Usa formato YYYY-MM-DD.")
+
+    topic_list = [t.strip() for t in topics.split(",") if t.strip()]
+    if not topic_list:
+        raise click.ClickException("Debes especificar al menos un tema.")
+
+    strong_list = [t.strip() for t in strong.split(",") if t.strip()] if strong else []
+    weak_list   = [t.strip() for t in weak.split(",") if t.strip()] if weak else []
+
+    mem = get_memory(nb_name)
+    weak_areas = [
+        (a["area"] if isinstance(a, dict) else a) for a in mem.get("weak_areas", [])
+    ]
+
+    click.echo("Generando plan de estudio con IA...")
+    plan_data = generate_plan(
+        nb_name, topic_list, parsed_date,
+        weak_areas=weak_areas or None,
+        strong_topics=strong_list or None,
+        weak_topics=weak_list or None,
+    )
+
+    days = plan_data.get("days", [])
+    weeks = plan_data.get("weeks", [])
+    click.echo(f"\nPlan generado: {len(days)} sesiones hasta el {exam_date}\n")
+    for week in weeks:
+        click.echo(f"  Semana {week['week']} ({week['start']} → {week['end']}): {', '.join(week['topics'])}")
+    click.echo()
+    for day in days[:5]:
+        strength_tag = f" [{day.get('strength','').upper()}]" if day.get('strength') else ""
+        click.echo(f"  {day['date']}  [{day['focus']:10}]{strength_tag}  {day['topic']}")
+    if len(days) > 5:
+        click.echo(f"  ... y {len(days) - 5} días más")
+    click.echo(f"\nGuardado en ~/.jarvis/plans/. Ejecuta sin flags para ver el plan completo.")
 
 
 if __name__ == "__main__":

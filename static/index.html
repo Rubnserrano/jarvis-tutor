@@ -4,377 +4,932 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Jarvis — Tutor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
 <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Segoe UI', system-ui, sans-serif; background: #0f1117; color: #e1e4e8; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+/* ── Design tokens ── */
+:root {
+  --bg:           #0e0e14;
+  --surface:      #16161f;
+  --surface2:     #1d1d28;
+  --surface3:     #222232;
+  --border:       #27273a;
+  --border-s:     #3d3d5c;
 
-  header {
-    padding: 12px 20px;
-    background: #161b22;
-    border-bottom: 1px solid #30363d;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-  header h1 { font-size: 1.1rem; font-weight: 600; color: #58a6ff; }
-  #status { font-size: 0.75rem; color: #8b949e; margin-left: auto; }
-  #status.speaking { color: #3fb950; }
-  #status.listening { color: #f0883e; }
+  --violet:       #a78bfa;
+  --violet-dim:   #7c5cbf;
+  --violet-bg:    #1e1a2e;
 
-  #tts-btn, #settings-btn {
-    background: #21262d;
-    border: 1px solid #30363d;
-    border-radius: 6px;
-    color: #e1e4e8;
-    padding: 4px 10px;
-    font-size: 0.8rem;
-    cursor: pointer;
-    white-space: nowrap;
-  }
-  #tts-btn:hover, #settings-btn:hover { background: #30363d; }
-  #tts-btn.muted { color: #8b949e; border-color: #21262d; }
-  #shortcut-label { font-size: 0.7rem; color: #8b949e; }
-  kbd {
-    background: #21262d;
-    border: 1px solid #484f58;
-    border-radius: 4px;
-    padding: 1px 5px;
-    font-size: 0.75rem;
-    font-family: monospace;
-    color: #e1e4e8;
-  }
+  --amber:        #f59e0b;
+  --amber-dim:    #b37208;
+  --amber-bg:     #2a1f08;
 
-  /* Settings modal */
-  #modal-overlay {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.6);
-    z-index: 100;
-    align-items: center;
-    justify-content: center;
-  }
-  #modal-overlay.open { display: flex; }
-  #modal {
-    background: #161b22;
-    border: 1px solid #30363d;
-    border-radius: 12px;
-    padding: 24px;
-    width: 440px;
-    max-width: 95vw;
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-  }
-  #modal h2 { font-size: 1rem; font-weight: 600; color: #e1e4e8; }
-  .field { display: flex; flex-direction: column; gap: 6px; }
-  .field label { font-size: 0.75rem; color: #8b949e; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
-  .field input, .field select {
-    background: #0d1117;
-    border: 1px solid #30363d;
-    border-radius: 6px;
-    padding: 8px 10px;
-    color: #e1e4e8;
-    font-size: 0.9rem;
-    outline: none;
-    font-size: 16px;
-  }
-  .field input:focus, .field select:focus { border-color: #58a6ff; }
-  .field .hint { font-size: 0.75rem; color: #8b949e; }
-  .field .hint a { color: #58a6ff; }
-  .modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
-  .btn-primary { padding: 8px 20px; background: #238636; border: none; border-radius: 6px; color: #fff; font-size: 0.85rem; font-weight: 600; cursor: pointer; }
-  .btn-primary:hover { background: #2ea043; }
-  .btn-secondary { padding: 8px 16px; background: transparent; border: 1px solid #30363d; border-radius: 6px; color: #e1e4e8; font-size: 0.85rem; cursor: pointer; }
-  .btn-secondary:hover { background: #21262d; }
-  #modal-status { font-size: 0.8rem; color: #3fb950; min-height: 1em; }
-  .auth-box {
-    background: #0d1117;
-    border: 1px solid #30363d;
-    border-radius: 6px;
-    padding: 10px 12px;
-    font-size: 0.8rem;
-    color: #8b949e;
-    line-height: 1.6;
-  }
-  .auth-box code {
-    background: #161b22;
-    border: 1px solid #30363d;
-    border-radius: 4px;
-    padding: 2px 6px;
-    font-family: monospace;
-    color: #e1e4e8;
-    font-size: 0.85em;
-  }
+  --green:        #34d399;
+  --green-bg:     rgba(52,211,153,0.10);
+  --orange:       #fb923c;
+  --orange-bg:    rgba(251,146,60,0.10);
+  --red:          #f87171;
+  --blue:         #60a5fa;
 
-  main {
-    flex: 1;
-    min-height: 0;
-    display: grid;
-    grid-template-columns: 1fr 320px;
-    overflow: hidden;
-  }
+  --text:         #ede9fe;
+  --text-dim:     #9898b8;
+  --text-muted:   #6b6b8d;
+  --text-user:    #e8e4ff;
 
-  /* Chat panel */
-  #chat {
-    display: flex;
-    flex-direction: column;
-    min-height: 0;
-    border-right: 1px solid #30363d;
-    overflow: hidden;
-  }
+  --radius-s:     6px;
+  --radius:       10px;
+  --radius-l:     14px;
+  --transition:   150ms ease;
+}
 
-  #messages {
-    flex: 1;
-    min-height: 0;
-    overflow-y: auto;
-    padding: 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-  }
+/* ── Reset ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1.65;
+  background: var(--bg);
+  color: var(--text);
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
 
-  .msg { display: flex; flex-direction: column; gap: 4px; max-width: 85%; }
-  .msg.user { align-self: flex-end; }
-  .msg.jarvis { align-self: flex-start; }
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-s); border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: var(--violet-dim); }
 
-  .msg-label { font-size: 0.7rem; color: #8b949e; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
-  .msg.user .msg-label { text-align: right; }
+/* ══════════════════════════════════
+   HEADER
+═══════════════════════════════════ */
+header {
+  padding: 0 16px;
+  height: 52px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
 
-  .msg-bubble {
-    padding: 12px 16px;
-    border-radius: 12px;
-    line-height: 1.6;
-    font-size: 0.92rem;
-  }
-  .msg.user .msg-bubble { background: #1f6feb; color: #fff; border-bottom-right-radius: 3px; }
-  .msg.jarvis .msg-bubble { background: #161b22; border: 1px solid #30363d; border-bottom-left-radius: 3px; }
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.brand-icon {
+  width: 28px;
+  height: 28px;
+  background: linear-gradient(135deg, var(--violet), var(--violet-dim));
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+}
+.brand-name {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
 
-  .msg-bubble .katex-display { margin: 8px 0; }
-  .msg-bubble p { margin-bottom: 6px; }
-  .msg-bubble p:last-child { margin-bottom: 0; }
-  .msg-bubble ul, .msg-bubble ol { margin: 6px 0 6px 20px; }
-  .msg-bubble code { background: #0d1117; padding: 1px 5px; border-radius: 4px; font-size: 0.85em; }
+/* Lofi Radio Widget */
+#radio-widget {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 4px 10px 4px 8px;
+  margin: 0 auto;
+  flex-shrink: 0;
+}
+#radio-toggle {
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  border: none;
+  background: var(--surface3);
+  color: var(--text-muted);
+  font-size: 13px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: var(--transition);
+  flex-shrink: 0;
+  position: relative;
+}
+#radio-toggle:hover { background: var(--border); color: var(--text); }
+#radio-toggle.playing {
+  color: var(--amber);
+  background: var(--amber-bg);
+  border: 1px solid rgba(245,158,11,0.3);
+  animation: radio-pulse 2s ease-in-out infinite;
+}
+@keyframes radio-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(245,158,11,0.25); }
+  50%       { box-shadow: 0 0 0 5px rgba(245,158,11,0); }
+}
+.radio-dot {
+  position: absolute;
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: var(--amber);
+  top: 2px; right: 2px;
+  display: none;
+}
+#radio-toggle.playing .radio-dot { display: block; }
 
-  #input-area {
-    padding: 12px 16px;
-    border-top: 1px solid #30363d;
-    display: flex;
-    gap: 8px;
-    align-items: center;
-    background: #0f1117;
-  }
+.radio-station-name {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-dim);
+  width: 96px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  cursor: default;
+  transition: color var(--transition);
+}
+#radio-toggle.playing ~ .radio-station-name { color: var(--amber); }
 
-  #mic-btn {
-    width: 40px; height: 40px;
-    border-radius: 50%;
-    border: none;
-    background: #21262d;
-    color: #e1e4e8;
-    font-size: 1.1rem;
-    cursor: pointer;
-    transition: background 0.15s;
-    flex-shrink: 0;
-  }
-  #mic-btn:hover { background: #30363d; }
-  #mic-btn.active { background: #b91c1c; animation: pulse 1s infinite; }
-  @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.6; } }
+.radio-nav {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 11px;
+  padding: 2px 3px;
+  border-radius: 3px;
+  transition: var(--transition);
+  line-height: 1;
+}
+.radio-nav:hover { color: var(--text); background: var(--border); }
 
-  #stop-btn {
-    width: 40px; height: 40px;
-    border-radius: 50%;
-    border: none;
-    background: #1f6feb;
-    color: #fff;
-    font-size: 1rem;
-    cursor: pointer;
-    flex-shrink: 0;
-    display: none;
-  }
+#radio-vol {
+  width: 56px;
+  height: 3px;
+  appearance: none;
+  background: var(--border-s);
+  border-radius: 99px;
+  outline: none;
+  cursor: pointer;
+}
+#radio-vol::-webkit-slider-thumb {
+  appearance: none;
+  width: 11px; height: 11px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  cursor: pointer;
+  transition: background var(--transition);
+}
+#radio-vol:hover::-webkit-slider-thumb { background: var(--violet); }
 
-  #text-input {
-    flex: 1;
-    background: #161b22;
-    border: 1px solid #30363d;
-    border-radius: 8px;
-    padding: 8px 12px;
-    color: #e1e4e8;
-    font-size: 16px; /* prevents browser auto-zoom on focus */
-    outline: none;
-  }
-  #text-input:focus { border-color: #58a6ff; }
+/* Header right controls */
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+.hdr-btn {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-s);
+  color: var(--text-dim);
+  padding: 4px 10px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: var(--transition);
+  font-family: inherit;
+}
+.hdr-btn:hover { border-color: var(--border-s); color: var(--text); background: var(--surface3); }
+.hdr-btn.muted { color: var(--text-muted); border-color: var(--border); }
+#status {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  min-width: 80px;
+  text-align: right;
+}
+#status.speaking { color: var(--green); }
+#status.listening { color: var(--amber); }
+.shortcut-hint { font-size: 0.68rem; color: var(--text-muted); white-space: nowrap; }
+kbd {
+  background: var(--surface3);
+  border: 1px solid var(--border-s);
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-size: 0.7rem;
+  font-family: monospace;
+  color: var(--text-dim);
+}
 
-  #send-btn {
-    padding: 8px 16px;
-    background: #238636;
-    border: none;
-    border-radius: 8px;
-    color: #fff;
-    font-size: 0.85rem;
-    cursor: pointer;
-    font-weight: 600;
-  }
-  #send-btn:hover { background: #2ea043; }
+/* ══════════════════════════════════
+   SETTINGS MODAL
+═══════════════════════════════════ */
+#modal-overlay {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.7);
+  backdrop-filter: blur(4px);
+  z-index: 200;
+  align-items: center;
+  justify-content: center;
+}
+#modal-overlay.open { display: flex; }
+#modal {
+  background: var(--surface);
+  border: 1px solid var(--border-s);
+  border-radius: var(--radius-l);
+  padding: 24px;
+  width: 440px;
+  max-width: 95vw;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  box-shadow: 0 24px 60px rgba(0,0,0,0.6);
+}
+#modal h2 { font-size: 0.95rem; font-weight: 700; color: var(--text); }
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field label { font-size: 0.65rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; }
+.field input, .field select {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-s);
+  padding: 8px 10px;
+  color: var(--text);
+  font-size: 16px;
+  outline: none;
+  font-family: inherit;
+  transition: border-color var(--transition);
+}
+.field input:focus, .field select:focus { border-color: var(--violet); }
+.field .hint { font-size: 0.72rem; color: var(--text-muted); }
+.field .hint a { color: var(--violet); text-decoration: none; }
+.field .hint a:hover { text-decoration: underline; }
+.modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
+.btn-primary {
+  padding: 8px 20px;
+  background: var(--violet-dim);
+  border: none;
+  border-radius: var(--radius-s);
+  color: #fff;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: var(--transition);
+}
+.btn-primary:hover { background: var(--violet); }
+.btn-secondary {
+  padding: 8px 16px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-s);
+  color: var(--text-dim);
+  font-size: 0.82rem;
+  cursor: pointer;
+  font-family: inherit;
+  transition: var(--transition);
+}
+.btn-secondary:hover { background: var(--surface2); border-color: var(--border-s); color: var(--text); }
+#modal-status { font-size: 0.78rem; color: var(--green); min-height: 1em; }
+.auth-box {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-s);
+  padding: 10px 12px;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+.auth-box code {
+  background: var(--surface3);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  color: var(--violet);
+  font-size: 0.82em;
+}
 
-  /* Sources panel */
-  #sidebar {
-    display: flex;
-    flex-direction: column;
-    min-height: 0;
-    background: #0d1117;
-    overflow: hidden;
-  }
+/* ══════════════════════════════════
+   MAIN LAYOUT
+═══════════════════════════════════ */
+main {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 1fr 330px;
+  overflow: hidden;
+}
 
-  .panel-title {
-    padding: 12px 16px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: #8b949e;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    border-bottom: 1px solid #21262d;
-  }
+/* ══════════════════════════════════
+   CHAT PANEL
+═══════════════════════════════════ */
+#chat {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-right: 1px solid var(--border);
+  overflow: hidden;
+}
 
-  #context-box {
-    flex: 1;
-    overflow-y: auto;
-    padding: 12px;
-    font-size: 0.8rem;
-    line-height: 1.6;
-    color: #8b949e;
-  }
-  #context-box.has-content { color: #c9d1d9; }
+#messages {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
 
-  #screenshot-box {
-    border-top: 1px solid #21262d;
-    padding: 8px;
-  }
-  #screenshot-box .panel-title { padding: 6px 4px 8px; border-bottom: none; }
-  #screenshot-img {
-    width: 100%;
-    max-height: 180px;
-    object-fit: contain;
-    border-radius: 6px;
-    border: 1px solid #21262d;
-    display: none;
-  }
+.msg { display: flex; flex-direction: column; gap: 5px; max-width: 88%; }
+.msg.user  { align-self: flex-end; }
+.msg.jarvis { align-self: flex-start; }
 
-  #typing { color: #58a6ff; font-size: 0.8rem; padding: 4px 20px; height: 20px; }
+.msg-label {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.msg.user .msg-label { text-align: right; }
+
+.msg-bubble {
+  padding: 12px 16px;
+  border-radius: var(--radius);
+  line-height: 1.7;
+  font-size: 0.88rem;
+}
+.msg.user .msg-bubble {
+  background: var(--violet-bg);
+  border: 1px solid rgba(167,139,250,0.25);
+  color: var(--text-user);
+  border-bottom-right-radius: 2px;
+}
+.msg.jarvis .msg-bubble {
+  background: var(--surface2);
+  border-left: 2px solid var(--violet-dim);
+  border-radius: 2px var(--radius) var(--radius) 2px;
+  color: var(--text);
+}
+
+/* Math & markdown in bubbles */
+.msg-bubble .katex-display { margin: 10px 0; overflow-x: auto; }
+.msg-bubble p { margin-bottom: 8px; }
+.msg-bubble p:last-child { margin-bottom: 0; }
+.msg-bubble ul, .msg-bubble ol { margin: 6px 0 6px 18px; }
+.msg-bubble li { margin-bottom: 3px; }
+.msg-bubble code {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-size: 0.82em;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  color: var(--violet);
+}
+.msg-bubble strong { color: var(--text); font-weight: 600; }
+.msg-bubble h3, .msg-bubble h4 { color: var(--violet); margin: 10px 0 4px; font-size: 0.88rem; }
+
+/* Typing indicator */
+#typing {
+  height: 22px;
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.typing-dot {
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  animation: typing-blink 1.2s infinite;
+  display: none;
+}
+.typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.typing-dot:nth-child(3) { animation-delay: 0.4s; }
+#typing.active .typing-dot { display: block; }
+#typing-label { font-size: 0.72rem; color: var(--text-muted); display: none; margin-left: 4px; }
+#typing.active #typing-label { display: block; }
+@keyframes typing-blink {
+  0%, 80%, 100% { opacity: 0.25; transform: scale(0.8); }
+  40%            { opacity: 1;    transform: scale(1); }
+}
+
+/* Input area */
+#input-area {
+  padding: 10px 16px 12px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  background: var(--surface);
+}
+
+#mic-btn {
+  width: 38px; height: 38px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--text-muted);
+  font-size: 1rem;
+  cursor: pointer;
+  transition: var(--transition);
+  flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+#mic-btn:hover { border-color: var(--border-s); color: var(--text); background: var(--surface3); }
+#mic-btn.active {
+  background: rgba(248,113,113,0.15);
+  border-color: var(--red);
+  color: var(--red);
+  animation: mic-pulse 1.2s ease-in-out infinite;
+}
+@keyframes mic-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(248,113,113,0.3); }
+  50%       { box-shadow: 0 0 0 6px rgba(248,113,113,0); }
+}
+
+#stop-btn {
+  width: 38px; height: 38px;
+  border-radius: 50%;
+  border: 1px solid rgba(96,165,250,0.4);
+  background: rgba(96,165,250,0.12);
+  color: var(--blue);
+  font-size: 0.9rem;
+  cursor: pointer;
+  flex-shrink: 0;
+  display: none;
+  align-items: center; justify-content: center;
+  transition: var(--transition);
+}
+#stop-btn:hover { background: rgba(96,165,250,0.2); }
+
+#text-input {
+  flex: 1;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-s);
+  padding: 8px 12px;
+  color: var(--text);
+  font-size: 16px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color var(--transition);
+}
+#text-input:focus { border-color: var(--violet-dim); }
+#text-input::placeholder { color: var(--text-muted); }
+
+#send-btn {
+  padding: 8px 16px;
+  background: var(--violet-dim);
+  border: none;
+  border-radius: var(--radius-s);
+  color: #fff;
+  font-size: 0.82rem;
+  font-family: inherit;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background var(--transition);
+  flex-shrink: 0;
+}
+#send-btn:hover { background: var(--violet); }
+
+/* ══════════════════════════════════
+   SIDEBAR
+═══════════════════════════════════ */
+#sidebar {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.tab-bar {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  padding: 0 4px;
+}
+.tab-btn {
+  flex: 1;
+  padding: 10px 4px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-muted);
+  font-size: 0.68rem;
+  font-family: inherit;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  cursor: pointer;
+  transition: color var(--transition);
+}
+.tab-btn:hover { color: var(--text-dim); }
+.tab-btn.active { color: var(--violet); border-bottom-color: var(--violet); }
+
+.tab-panel {
+  display: none;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
+  overflow: hidden;
+}
+.tab-panel.active { display: flex; }
+
+.panel-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 12px;
+  font-size: 0.8rem;
+  line-height: 1.6;
+  color: var(--text-muted);
+}
+.panel-scroll.has-content { color: var(--text-dim); }
+
+/* Screenshot box */
+#screenshot-box {
+  border-top: 1px solid var(--border);
+  padding: 8px;
+  flex-shrink: 0;
+}
+.ss-title {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  padding-bottom: 6px;
+}
+#screenshot-img {
+  width: 100%;
+  max-height: 150px;
+  object-fit: contain;
+  border-radius: var(--radius-s);
+  border: 1px solid var(--border);
+  display: none;
+  opacity: 0.85;
+}
+
+/* ──────────────────────────────────
+   PLAN TAB
+────────────────────────────────── */
+.plan-create-form {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.pf-title {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  margin-bottom: 3px;
+}
+.plan-create-form input {
+  width: 100%;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-s);
+  padding: 5px 8px;
+  color: var(--text);
+  font-size: 0.78rem;
+  font-family: inherit;
+  outline: none;
+  transition: border-color var(--transition);
+}
+.plan-create-form input:focus { border-color: var(--violet-dim); }
+.plan-create-form input::placeholder { color: var(--text-muted); }
+.plan-gen-btn {
+  width: 100%;
+  padding: 7px;
+  background: var(--violet-dim);
+  border: none;
+  border-radius: var(--radius-s);
+  color: #fff;
+  font-size: 0.78rem;
+  font-family: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 2px;
+  transition: background var(--transition);
+}
+.plan-gen-btn:hover { background: var(--violet); }
+.plan-gen-btn:disabled { background: var(--surface3); color: var(--text-muted); cursor: default; }
+#plan-gen-status { font-size: 0.7rem; color: var(--text-muted); min-height: 1em; }
+
+.week-header {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--violet);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  padding: 8px 0 5px;
+  border-top: 1px solid var(--border);
+  margin-top: 6px;
+}
+.week-header:first-of-type { border-top: none; margin-top: 0; padding-top: 0; }
+
+.plan-day {
+  padding: 7px 10px;
+  border-radius: var(--radius-s);
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  margin-bottom: 5px;
+  transition: border-color var(--transition);
+}
+.plan-day:hover { border-color: var(--border-s); }
+.plan-day.today { border-color: var(--amber); background: var(--amber-bg); }
+.plan-day.rest { opacity: 0.45; }
+.plan-day-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px; }
+.plan-day-date { font-size: 0.65rem; color: var(--text-muted); }
+.plan-strength { font-size: 0.6rem; padding: 1px 5px; border-radius: 3px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+.plan-strength.fuerte { background: var(--green-bg); color: var(--green); }
+.plan-strength.débil  { background: var(--orange-bg); color: var(--orange); }
+.plan-strength.medio  { background: rgba(107,107,141,0.15); color: var(--text-muted); }
+.plan-day-topic { font-weight: 600; color: var(--text); font-size: 0.8rem; }
+.plan-day-focus { font-size: 0.68rem; color: var(--text-muted); margin-top: 2px; }
+.plan-day.today .plan-day-focus { color: var(--amber); }
+.plan-day-obj { font-size: 0.72rem; color: var(--text-dim); margin-top: 5px; line-height: 1.45; }
+
+/* ──────────────────────────────────
+   EXERCISES TAB
+────────────────────────────────── */
+.ex-card {
+  padding: 8px 10px;
+  border-radius: var(--radius-s);
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  margin-bottom: 6px;
+  transition: border-color var(--transition);
+}
+.ex-card:hover { border-color: var(--border-s); }
+.ex-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px; }
+.ex-id { font-size: 0.65rem; color: var(--violet); font-weight: 700; font-family: monospace; }
+.ex-topic { font-size: 0.65rem; color: var(--text-muted); }
+.ex-problem { font-size: 0.78rem; color: var(--text); line-height: 1.45; }
+.ex-key { font-size: 0.7rem; color: var(--text-muted); margin-top: 4px; }
+.ex-key::before { content: "→ "; color: var(--violet-dim); }
+.ex-similar { font-size: 0.65rem; color: #bc8cff; margin-top: 3px; }
+.ex-status { font-size: 0.65rem; margin-top: 4px; font-weight: 600; }
+.ex-status.ok      { color: var(--green); }
+.ex-status.pending { color: var(--orange); }
 </style>
 </head>
 <body>
 
+<!-- ══ HEADER ══ -->
 <header>
-  <span>🤖</span>
-  <h1>Jarvis — Tutor de Procesos Estocásticos</h1>
-  <span id="shortcut-label">Hablar: <kbd id="shortcut-key">F2</kbd></span>
-  <button id="tts-btn" title="Activar/desactivar voz de Jarvis">🔊 Voz</button>
-  <button id="settings-btn" title="Ajustes">⚙️ Ajustes</button>
-  <span id="status">Conectando...</span>
+  <div class="brand">
+    <div class="brand-icon">🤖</div>
+    <span class="brand-name">Jarvis</span>
+  </div>
+
+  <!-- Lofi Radio -->
+  <div id="radio-widget">
+    <button id="radio-toggle" title="Play / Pause">
+      ♪
+      <span class="radio-dot"></span>
+    </button>
+    <span class="radio-station-name" id="radio-name">Groove Salad</span>
+    <button class="radio-nav" id="radio-prev" title="Estación anterior">‹</button>
+    <button class="radio-nav" id="radio-next" title="Estación siguiente">›</button>
+    <input id="radio-vol" type="range" min="0" max="1" step="0.05" value="0.3" title="Volumen música">
+  </div>
+
+  <div class="header-actions">
+    <span class="shortcut-hint">Hablar: <kbd id="shortcut-key">F2</kbd></span>
+    <button id="tts-btn" class="hdr-btn" title="Activar/desactivar voz de Jarvis">🔊 Voz</button>
+    <button id="settings-btn" class="hdr-btn" title="Ajustes">⚙️</button>
+    <span id="status">Conectando...</span>
+  </div>
 </header>
 
-<!-- Settings modal -->
+<!-- ══ SETTINGS MODAL ══ -->
 <div id="modal-overlay">
   <div id="modal">
-    <h2>⚙️ Configuración de Jarvis</h2>
+    <h2>⚙️ Configuración</h2>
 
     <div class="field">
       <label>Gemini API Key</label>
       <input id="cfg-apikey" type="password" placeholder="AIza..." autocomplete="off" />
-      <span class="hint">Consigue tu key gratuita en <a href="https://aistudio.google.com/apikey" target="_blank">aistudio.google.com/apikey</a></span>
+      <span class="hint">Consigue tu key en <a href="https://aistudio.google.com/apikey" target="_blank">aistudio.google.com/apikey</a></span>
     </div>
 
     <div class="field">
-      <label>Nombre del notebook</label>
-      <input id="cfg-notebook" type="text" placeholder="Ej: Procesos Estocasticos" />
-      <span class="hint">Debe coincidir con el notebook creado en NotebookLM.</span>
+      <label>Notebook activo</label>
+      <input id="cfg-notebook" type="text" placeholder="Ej: Procesos Estocásticos" />
     </div>
 
     <div class="field">
-      <label>Conectar NotebookLM (apuntes)</label>
+      <label>Conectar NotebookLM</label>
       <div class="auth-box">
-        Ejecuta esto en la terminal una vez para conectar tu cuenta Google:<br><br>
-        <code>notebooklm auth login</code><br><br>
-        Tus apuntes deben estar subidos en <a href="https://notebooklm.google.com" target="_blank" style="color:#58a6ff">notebooklm.google.com</a> dentro del notebook configurado arriba.
+        Ejecuta una vez en la terminal para conectar tu cuenta Google:<br><br>
+        <code>notebooklm auth login</code>
       </div>
     </div>
 
     <div id="modal-status"></div>
-
     <div class="modal-actions">
       <button class="btn-secondary" id="modal-cancel">Cancelar</button>
-      <button class="btn-primary" id="modal-save">Guardar y reiniciar</button>
+      <button class="btn-primary"   id="modal-save">Guardar y reconectar</button>
     </div>
   </div>
 </div>
 
+<!-- ══ MAIN ══ -->
 <main>
+  <!-- Chat -->
   <section id="chat">
     <div id="messages"></div>
-    <div id="typing"></div>
+    <div id="typing">
+      <div class="typing-dot"></div>
+      <div class="typing-dot"></div>
+      <div class="typing-dot"></div>
+      <span id="typing-label">Jarvis está pensando...</span>
+    </div>
     <div id="input-area">
-      <button id="mic-btn" title="Mantén pulsado para hablar">🎤</button>
-      <button id="stop-btn" title="Interrumpir">⏹</button>
-      <input id="text-input" type="text" placeholder="Escribe tu mensaje o pulsa el micrófono..." />
+      <button id="mic-btn" title="F2 — iniciar/parar grabación">🎤</button>
+      <button id="stop-btn" title="Interrumpir respuesta">⏹</button>
+      <input id="text-input" type="text" placeholder="Escribe o pulsa F2 para hablar..." />
       <button id="send-btn">Enviar</button>
     </div>
   </section>
 
+  <!-- Sidebar -->
   <aside id="sidebar">
-    <div class="panel-title">Contexto de apuntes</div>
-    <div id="context-box">Los fragmentos relevantes de tus apuntes aparecerán aquí.</div>
-    <div id="screenshot-box">
-      <div class="panel-title">Pantalla capturada</div>
-      <img id="screenshot-img" alt="Captura de pantalla" />
+    <div class="tab-bar">
+      <button class="tab-btn active" data-tab="apuntes">Apuntes</button>
+      <button class="tab-btn"        data-tab="plan">Plan</button>
+      <button class="tab-btn"        data-tab="ejercicios">Ejercicios</button>
+    </div>
+
+    <!-- Tab: Apuntes -->
+    <div id="tab-apuntes" class="tab-panel active">
+      <div id="context-box" class="panel-scroll">Los fragmentos relevantes de tus apuntes aparecerán aquí tras cada respuesta.</div>
+      <div id="screenshot-box">
+        <div class="ss-title">Pantalla capturada</div>
+        <img id="screenshot-img" alt="Captura de pantalla" />
+      </div>
+    </div>
+
+    <!-- Tab: Plan -->
+    <div id="tab-plan" class="tab-panel">
+      <div class="plan-create-form">
+        <div class="pf-title">Plan de estudio</div>
+        <input id="pf-exam"   type="date"   title="Fecha del examen" />
+        <input id="pf-topics" type="text"   placeholder="Temas (separados por coma)" />
+        <input id="pf-strong" type="text"   placeholder="Temas que dominas bien (opcional)" />
+        <input id="pf-weak"   type="text"   placeholder="Temas que necesitas reforzar (opcional)" />
+        <button class="plan-gen-btn" id="plan-gen-btn">Generar plan con IA</button>
+        <div id="plan-gen-status"></div>
+      </div>
+      <div id="plan-box" class="panel-scroll">Rellena el formulario para generar tu plan personalizado.</div>
+    </div>
+
+    <!-- Tab: Ejercicios -->
+    <div id="tab-ejercicios" class="tab-panel">
+      <div id="exercises-box" class="panel-scroll">Los ejercicios resueltos en cada sesión aparecerán aquí automáticamente.</div>
     </div>
   </aside>
 </main>
 
-<audio id="audio-player"></audio>
+<!-- Separate audio elements -->
+<audio id="tts-player"></audio>
+<audio id="radio-player" preload="none"></audio>
 
 <script>
-const messagesEl = document.getElementById('messages');
-const contextEl  = document.getElementById('context-box');
+/* ════════════════════════════════════
+   LOFI RADIO
+════════════════════════════════════ */
+const STATIONS = [
+  { name: "Groove Salad",    url: "https://ice1.somafm.com/groovesalad-256-mp3" },
+  { name: "Drone Zone",      url: "https://ice1.somafm.com/dronezone-256-mp3"   },
+  { name: "Beat Blender",    url: "https://ice1.somafm.com/beatblender-128-mp3" },
+  { name: "Suburbs of Goa",  url: "https://ice1.somafm.com/suburbsofgoa-128-mp3"},
+];
+
+let radioIdx     = 0;
+let radioPlaying = false;
+const radioPlayer = document.getElementById('radio-player');
+const radioToggle = document.getElementById('radio-toggle');
+const radioName   = document.getElementById('radio-name');
+const radioVol    = document.getElementById('radio-vol');
+
+radioPlayer.volume = parseFloat(radioVol.value);
+radioVol.addEventListener('input', () => { radioPlayer.volume = parseFloat(radioVol.value); });
+
+function radioSetStation(idx) {
+  radioIdx = (idx + STATIONS.length) % STATIONS.length;
+  radioName.textContent = STATIONS[radioIdx].name;
+  if (radioPlaying) {
+    radioPlayer.src = STATIONS[radioIdx].url;
+    radioPlayer.play().catch(() => {});
+  }
+}
+
+function radioTogglePlay() {
+  if (radioPlaying) {
+    radioPlayer.pause();
+    radioPlayer.src = '';
+    radioPlaying = false;
+    radioToggle.classList.remove('playing');
+  } else {
+    radioPlayer.src = STATIONS[radioIdx].url;
+    radioPlayer.play().then(() => {
+      radioPlaying = true;
+      radioToggle.classList.add('playing');
+    }).catch(e => {
+      console.warn('Radio stream error:', e);
+    });
+  }
+}
+
+radioToggle.addEventListener('click', radioTogglePlay);
+document.getElementById('radio-prev').addEventListener('click', () => radioSetStation(radioIdx - 1));
+document.getElementById('radio-next').addEventListener('click', () => radioSetStation(radioIdx + 1));
+radioPlayer.addEventListener('playing', () => { radioPlaying = true; radioToggle.classList.add('playing'); });
+radioPlayer.addEventListener('pause',   () => { radioToggle.classList.remove('playing'); });
+radioPlayer.addEventListener('error',   () => {
+  // Auto-try next station on error
+  setTimeout(() => radioSetStation(radioIdx + 1), 2000);
+});
+
+/* ════════════════════════════════════
+   WEBSOCKET + CHAT
+════════════════════════════════════ */
+const messagesEl   = document.getElementById('messages');
+const contextEl    = document.getElementById('context-box');
 const screenshotEl = document.getElementById('screenshot-img');
-const typingEl   = document.getElementById('typing');
-const statusEl   = document.getElementById('status');
-const textInput  = document.getElementById('text-input');
-const micBtn     = document.getElementById('mic-btn');
-const stopBtn    = document.getElementById('stop-btn');
-const sendBtn    = document.getElementById('send-btn');
-const audioPlayer = document.getElementById('audio-player');
+const typingEl     = document.getElementById('typing');
+const statusEl     = document.getElementById('status');
+const textInput    = document.getElementById('text-input');
+const micBtn       = document.getElementById('mic-btn');
+const stopBtn      = document.getElementById('stop-btn');
+const sendBtn      = document.getElementById('send-btn');
+const ttsPlayer    = document.getElementById('tts-player');
+const planBoxEl    = document.getElementById('plan-box');
+const exBoxEl      = document.getElementById('exercises-box');
 
 let ws;
-let recognition;
 let ttsEnabled = true;
-let pushKey = 'F2'; // ← cambia aquí la tecla: 'F2', 'v', 'Tab', '\', etc.
+let pushKey    = 'F2';
 let isRecording = false;
 let accumulatedTranscript = '';
 
-// --- WebSocket ---
+const KATEX_OPTS = {
+  delimiters: [
+    { left: '$$', right: '$$', display: true  },
+    { left: '$',  right: '$',  display: false },
+  ],
+  throwOnError: false,
+};
+
 function connect() {
   ws = new WebSocket(`ws://${location.host}/ws`);
-
   ws.onopen = () => setStatus('Conectado', '');
 
-  ws.onmessage = (event) => {
-    const msg = JSON.parse(event.data);
-
+  ws.onmessage = (ev) => {
+    const msg = JSON.parse(ev.data);
     if (msg.type === 'welcome' || msg.type === 'response') {
-      typingEl.textContent = '';
+      setTyping(false);
       addMessage('jarvis', msg.text);
       updateContext(msg.context || '');
       updateScreenshot(msg.screenshot);
-      if (msg.audio) playAudio(msg.audio);
+      if (msg.audio) playTTS(msg.audio);
       if (msg.exit) setStatus('Sesión terminada', '');
     } else if (msg.type === 'error') {
+      setTyping(false);
       addMessage('jarvis', '⚠️ ' + msg.text);
     } else if (msg.type === 'setup_required') {
-      handleSetupRequired(msg);
+      setTyping(false);
+      addMessage('jarvis', `⚠️ **Configuración necesaria**\n\n${msg.text}`);
+      setTimeout(openSettings, 600);
     }
   };
 
@@ -385,15 +940,19 @@ function connect() {
 function send(text) {
   if (!ws || ws.readyState !== WebSocket.OPEN || !text.trim()) return;
   addMessage('user', text);
-  typingEl.textContent = 'Jarvis está pensando...';
+  setTyping(true);
   ws.send(JSON.stringify({ type: 'message', text }));
   textInput.value = '';
 }
 
-// --- UI helpers ---
+/* ── UI helpers ── */
 function setStatus(text, cls) {
   statusEl.textContent = text;
   statusEl.className = cls;
+}
+
+function setTyping(active) {
+  typingEl.classList.toggle('active', active);
 }
 
 function addMessage(role, text) {
@@ -407,14 +966,7 @@ function addMessage(role, text) {
   const bubble = document.createElement('div');
   bubble.className = 'msg-bubble';
   bubble.innerHTML = marked.parse(text);
-
-  renderMathInElement(bubble, {
-    delimiters: [
-      { left: '$$', right: '$$', display: true },
-      { left: '$', right: '$', display: false },
-    ],
-    throwOnError: false,
-  });
+  renderMathInElement(bubble, KATEX_OPTS);
 
   div.appendChild(label);
   div.appendChild(bubble);
@@ -425,13 +977,7 @@ function addMessage(role, text) {
 function updateContext(text) {
   if (text && text.trim()) {
     contextEl.innerHTML = marked.parse(text);
-    renderMathInElement(contextEl, {
-      delimiters: [
-        { left: '$$', right: '$$', display: true },
-        { left: '$', right: '$', display: false },
-      ],
-      throwOnError: false,
-    });
+    renderMathInElement(contextEl, KATEX_OPTS);
     contextEl.classList.add('has-content');
   }
 }
@@ -443,59 +989,44 @@ function updateScreenshot(b64) {
   }
 }
 
-// --- TTS toggle ---
+/* ── TTS ── */
 const ttsBtn = document.getElementById('tts-btn');
-ttsBtn.onclick = () => {
+ttsEnabled = true;
+
+ttsBtn.addEventListener('click', () => {
   ttsEnabled = !ttsEnabled;
   ttsBtn.textContent = ttsEnabled ? '🔊 Voz' : '🔇 Voz';
   ttsBtn.classList.toggle('muted', !ttsEnabled);
-  if (!ttsEnabled) stopAudio();
-};
+  if (!ttsEnabled) stopTTS();
+});
 
-// --- Audio ---
-function playAudio(b64) {
+function playTTS(b64) {
   if (!ttsEnabled) return;
-  stopAudio();
+  stopTTS();
   const blob = new Blob([Uint8Array.from(atob(b64), c => c.charCodeAt(0))], { type: 'audio/mpeg' });
-  audioPlayer.src = URL.createObjectURL(blob);
-  audioPlayer.play();
+  ttsPlayer.src = URL.createObjectURL(blob);
+  ttsPlayer.play();
   setStatus('Hablando...', 'speaking');
   stopBtn.style.display = 'flex';
-
-  audioPlayer.onended = () => {
-    setStatus('Conectado', '');
-    stopBtn.style.display = 'none';
-  };
+  ttsPlayer.onended = () => { setStatus('Conectado', ''); stopBtn.style.display = 'none'; };
 }
 
-function stopAudio() {
-  audioPlayer.pause();
-  audioPlayer.src = '';
+function stopTTS() {
+  ttsPlayer.pause();
+  ttsPlayer.src = '';
   stopBtn.style.display = 'none';
+  setStatus('Conectado', '');
 }
+stopBtn.addEventListener('click', stopTTS);
 
-stopBtn.onclick = stopAudio;
-
-// --- Voice input (Web Speech API) ---
+/* ── Voice input ── */
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-
-function startRecording() {
-  if (isRecording) return;
-  accumulatedTranscript = '';
-  isRecording = true;
-  stopAudio();
-  recognition.start();
-}
-
-function stopRecording() {
-  if (!isRecording) return;
-  recognition.stop(); // onend will send
-}
+let recognition;
 
 if (SpeechRecognition) {
   recognition = new SpeechRecognition();
   recognition.lang = 'es-ES';
-  recognition.continuous = true;      // keep recording until stopped
+  recognition.continuous = true;
   recognition.interimResults = false;
 
   recognition.onresult = (e) => {
@@ -519,41 +1050,46 @@ if (SpeechRecognition) {
       accumulatedTranscript = '';
     }
   };
-  recognition.onerror = () => {
-    micBtn.classList.remove('active');
-    isRecording = false;
-  };
+  recognition.onerror = () => { micBtn.classList.remove('active'); isRecording = false; };
 
-  micBtn.onclick = () => isRecording ? stopRecording() : startRecording();
-
+  micBtn.addEventListener('click', () => isRecording ? stopRec() : startRec());
 } else {
-  micBtn.title = 'Tu navegador no soporta voz — usa el texto';
-  micBtn.style.opacity = '0.4';
-  micBtn.onclick = () => alert('Usa Chrome para el micrófono.');
+  micBtn.title = 'Tu navegador no soporta voz — usa Chrome';
+  micBtn.style.opacity = '0.35';
+  micBtn.addEventListener('click', () => alert('Usa Chrome para el micrófono.'));
 }
 
-// --- Keyboard shortcuts ---
-textInput.addEventListener('keydown', (e) => {
+function startRec() {
+  if (isRecording) return;
+  accumulatedTranscript = '';
+  isRecording = true;
+  stopTTS();
+  recognition.start();
+}
+
+function stopRec() {
+  if (!isRecording) return;
+  recognition.stop();
+}
+
+/* ── Keyboard ── */
+textInput.addEventListener('keydown', e => {
   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(textInput.value); }
 });
-sendBtn.onclick = () => send(textInput.value);
+sendBtn.addEventListener('click', () => send(textInput.value));
 
-// Toggle recording: press key once to start, again to stop and send
-document.addEventListener('keydown', (e) => {
+document.addEventListener('keydown', e => {
   if (document.activeElement === textInput) return;
   if (e.key === pushKey && recognition) {
     e.preventDefault();
-    isRecording ? stopRecording() : startRecording();
+    isRecording ? stopRec() : startRec();
   }
 });
 
-// Show configured key in header
-const keyLabel = document.getElementById('shortcut-key');
-keyLabel.textContent = pushKey;
+document.getElementById('shortcut-key').textContent = pushKey;
 
-// --- Settings modal ---
+/* ── Settings modal ── */
 const overlay     = document.getElementById('modal-overlay');
-const settingsBtn = document.getElementById('settings-btn');
 const modalCancel = document.getElementById('modal-cancel');
 const modalSave   = document.getElementById('modal-save');
 const modalStatus = document.getElementById('modal-status');
@@ -564,40 +1100,212 @@ async function openSettings() {
   modalStatus.textContent = '';
   const res = await fetch('/api/config');
   const cfg = await res.json();
-  cfgApiKey.placeholder  = cfg.has_api_key ? '(guardada — pega nueva para cambiar)' : 'AIza...';
-  cfgNotebook.value      = cfg.active_notebook || '';
+  cfgApiKey.placeholder = cfg.has_api_key ? '(guardada — pega nueva para cambiar)' : 'AIza...';
+  cfgNotebook.value = cfg.active_notebook || '';
   overlay.classList.add('open');
 }
 
-settingsBtn.onclick = openSettings;
-modalCancel.onclick = () => overlay.classList.remove('open');
-overlay.onclick = (e) => { if (e.target === overlay) overlay.classList.remove('open'); };
+document.getElementById('settings-btn').addEventListener('click', openSettings);
+modalCancel.addEventListener('click', () => overlay.classList.remove('open'));
+overlay.addEventListener('click', e => { if (e.target === overlay) overlay.classList.remove('open'); });
 
-modalSave.onclick = async () => {
+modalSave.addEventListener('click', async () => {
   modalStatus.textContent = 'Guardando...';
-  modalStatus.style.color = '#8b949e';
+  modalStatus.style.color = 'var(--text-muted)';
   const body = {};
   if (cfgApiKey.value.trim())   body.api_key  = cfgApiKey.value.trim();
   if (cfgNotebook.value.trim()) body.notebook  = cfgNotebook.value.trim();
-  await fetch('/api/config', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
+  await fetch('/api/config', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
   modalStatus.textContent = '✓ Guardado. Reconectando...';
-  modalStatus.style.color = '#3fb950';
+  modalStatus.style.color = 'var(--green)';
   overlay.classList.remove('open');
-  setTimeout(() => { connect(); }, 800);
+  setTimeout(connect, 800);
+});
+
+/* ════════════════════════════════════
+   TABS
+════════════════════════════════════ */
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+    if (btn.dataset.tab === 'plan')       loadPlan();
+    if (btn.dataset.tab === 'ejercicios') loadExercises();
+  });
+});
+
+/* ════════════════════════════════════
+   PLAN TAB
+════════════════════════════════════ */
+const focusColors = {
+  teoria: 'var(--blue)',
+  ejercicios: 'var(--green)',
+  repaso: 'var(--amber)',
+  simulacro: '#bc8cff',
+  descanso: 'var(--text-muted)',
 };
 
-// Handle setup_required message from server
-function handleSetupRequired(msg) {
-  addMessage('jarvis', `⚠️ **Configuración necesaria**\n\n${msg.text}`);
-  setTimeout(openSettings, 600);
+async function loadPlan() {
+  planBoxEl.innerHTML = 'Cargando...';
+  try {
+    const res  = await fetch('/api/plan');
+    const data = await res.json();
+    const plan = data.plan;
+    if (!plan) {
+      planBoxEl.innerHTML = '<p style="color:var(--text-muted);padding:4px">Rellena el formulario para crear tu plan personalizado.</p>';
+      return;
+    }
+    // Pre-fill form
+    const pfExam = document.getElementById('pf-exam');
+    if (plan.exam_date)    pfExam.value = plan.exam_date;
+    if (plan.topics?.length)        document.getElementById('pf-topics').value = plan.topics.join(', ');
+    if (plan.strong_topics?.length) document.getElementById('pf-strong').value = plan.strong_topics.join(', ');
+    if (plan.weak_topics?.length)   document.getElementById('pf-weak').value   = plan.weak_topics.join(', ');
+
+    const today    = new Date().toISOString().slice(0, 10);
+    const daysLeft = Math.round((new Date(plan.exam_date) - new Date(today)) / 86400000);
+    const daysColor = daysLeft <= 7 ? 'var(--orange)' : daysLeft <= 14 ? 'var(--amber)' : 'var(--green)';
+
+    let html = `<div style="font-size:0.78rem;font-weight:600;color:var(--text);margin-bottom:10px">
+      Examen: ${plan.exam_date} — <span style="color:${daysColor}">${daysLeft} días</span>
+    </div>`;
+
+    // Group by week
+    const byWeek = {};
+    for (const day of plan.days || []) {
+      const w = day.week || 1;
+      if (!byWeek[w]) byWeek[w] = [];
+      byWeek[w].push(day);
+    }
+    const weekMeta = {};
+    for (const w of plan.weeks || []) weekMeta[w.week] = w;
+
+    let firstWeek = true;
+    for (const [wnum, wdays] of Object.entries(byWeek)) {
+      const meta   = weekMeta[wnum];
+      const wLabel = meta ? `Semana ${wnum}  ·  ${meta.start} → ${meta.end}` : `Semana ${wnum}`;
+      html += `<div class="week-header${firstWeek ? ' ' : ''}">${wLabel}</div>`;
+      firstWeek = false;
+
+      for (const day of wdays) {
+        const isToday   = day.date === today;
+        const isRest    = day.focus === 'descanso';
+        const fColor    = focusColors[day.focus] || 'var(--text-muted)';
+        const strength  = (day.strength || 'medio').toLowerCase();
+        const strengthLabel = { fuerte: 'FUERTE', débil: 'DÉBIL', medio: 'MEDIO' }[strength] || strength.toUpperCase();
+
+        html += `<div class="plan-day${isToday?' today':''}${isRest?' rest':''}">
+          <div class="plan-day-header">
+            <span class="plan-day-date">${day.date}${isToday ? ' <b style="color:var(--amber)">HOY</b>' : ''}</span>
+            ${!isRest ? `<span class="plan-strength ${strength}">${strengthLabel}</span>` : ''}
+          </div>
+          <div class="plan-day-topic">${day.topic}</div>
+          <div class="plan-day-focus" style="color:${fColor}">${day.focus}${day.difficulty?' · '+day.difficulty:''}</div>
+          ${isToday && day.objective ? `<div class="plan-day-obj">${day.objective}</div>` : ''}
+        </div>`;
+      }
+    }
+    planBoxEl.innerHTML = html;
+  } catch(e) {
+    planBoxEl.innerHTML = '<p style="color:var(--text-muted)">Error al cargar el plan.</p>';
+  }
 }
 
-// --- Init ---
+document.getElementById('plan-gen-btn').addEventListener('click', async () => {
+  const examDate = document.getElementById('pf-exam').value;
+  const topics   = document.getElementById('pf-topics').value.trim();
+  const strong   = document.getElementById('pf-strong').value.trim();
+  const weak     = document.getElementById('pf-weak').value.trim();
+  const statusEl2 = document.getElementById('plan-gen-status');
+  const btn       = document.getElementById('plan-gen-btn');
+
+  if (!examDate || !topics) {
+    statusEl2.style.color = 'var(--orange)';
+    statusEl2.textContent = 'Rellena la fecha y los temas.';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Generando...';
+  statusEl2.style.color = 'var(--text-muted)';
+  statusEl2.textContent = 'Llamando a Gemini (~10s)...';
+
+  try {
+    const res = await fetch('/api/plan', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ exam_date: examDate, topics, strong_topics: strong, weak_topics: weak }),
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    statusEl2.style.color = 'var(--green)';
+    statusEl2.textContent = '✓ Plan generado.';
+    await loadPlan();
+  } catch(e) {
+    statusEl2.style.color = 'var(--orange)';
+    statusEl2.textContent = 'Error: ' + e.message;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Generar plan con IA';
+  }
+});
+
+/* ════════════════════════════════════
+   EXERCISES TAB
+════════════════════════════════════ */
+async function loadExercises() {
+  exBoxEl.innerHTML = 'Cargando...';
+  try {
+    const res  = await fetch('/api/exercises');
+    const data = await res.json();
+    const exercises = data.exercises || [];
+
+    if (!exercises.length) {
+      exBoxEl.innerHTML = '<p style="color:var(--text-muted)">Aún no hay ejercicios guardados.<br><br>Después de cada sesión de estudio los ejercicios resueltos aparecerán aquí automáticamente.</p>';
+      return;
+    }
+
+    // Group by topic
+    const byTopic = {};
+    for (const ex of [...exercises].reverse()) {
+      const t = ex.topic || 'General';
+      if (!byTopic[t]) byTopic[t] = [];
+      byTopic[t].push(ex);
+    }
+
+    let html = `<div style="font-size:0.7rem;color:var(--text-muted);margin-bottom:8px">${exercises.length} ejercicio(s) guardado(s)</div>`;
+    for (const [topic, exs] of Object.entries(byTopic)) {
+      html += `<div style="font-size:0.65rem;font-weight:700;color:var(--violet);text-transform:uppercase;letter-spacing:0.07em;margin:8px 0 4px">${topic}</div>`;
+      for (const ex of exs) {
+        const ok = ex.understood !== false;
+        html += `<div class="ex-card">
+          <div class="ex-card-header">
+            <span class="ex-id">${ex.id}</span>
+            <span class="ex-topic">${ex.date || ''}</span>
+          </div>
+          <div class="ex-problem">${ex.problem || ''}</div>
+          ${ex.key_steps?.[0] ? `<div class="ex-key">${ex.key_steps[0]}</div>` : ''}
+          ${ex.similar_to?.length ? `<div class="ex-similar">Similar a: ${ex.similar_to.join(', ')}</div>` : ''}
+          <div class="ex-status ${ok ? 'ok' : 'pending'}">${ok ? '✓ Entendido' : '⚠ Pendiente de repasar'}</div>
+        </div>`;
+      }
+    }
+    exBoxEl.innerHTML = html;
+    exBoxEl.querySelectorAll('.ex-problem').forEach(el =>
+      renderMathInElement(el, KATEX_OPTS)
+    );
+  } catch(e) {
+    exBoxEl.innerHTML = '<p style="color:var(--text-muted)">Error al cargar los ejercicios.</p>';
+  }
+}
+
+/* ════════════════════════════════════
+   INIT
+════════════════════════════════════ */
 connect();
+loadPlan();
 </script>
 </body>
 </html>

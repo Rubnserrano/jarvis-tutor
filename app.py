@@ -12,6 +12,10 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
+from datetime import date as _date
+
+from jarvis.exercises import get_exercises
+from jarvis.planner import generate_plan, get_plan, today_plan_summary
 from jarvis.settings import get_active_notebook, set_active_notebook
 from jarvis.tutor import TutorSession
 from jarvis.voice import _VOICE, _RATE, _clean_latex
@@ -48,6 +52,47 @@ async def save_config(data: dict):
     if notebook := data.get("notebook", "").strip():
         set_active_notebook(notebook)
     return JSONResponse({"ok": True})
+
+
+# ── Exercises + Plan API ─────────────────────────────────────────────────────
+
+@app.get("/api/exercises")
+async def api_exercises():
+    notebook = get_active_notebook()
+    exercises = get_exercises(notebook)
+    return JSONResponse({"exercises": exercises})
+
+
+@app.get("/api/plan")
+async def api_plan():
+    notebook = get_active_notebook()
+    plan = get_plan(notebook)
+    summary = today_plan_summary(notebook)
+    return JSONResponse({"plan": plan, "today_summary": summary})
+
+
+@app.post("/api/plan")
+async def api_create_plan(data: dict):
+    from jarvis.memory import get_memory
+    notebook = get_active_notebook()
+    try:
+        exam_date = _date.fromisoformat(data["exam_date"])
+    except (KeyError, ValueError):
+        return JSONResponse({"error": "exam_date inválida (usa YYYY-MM-DD)"}, status_code=400)
+    topics = [t.strip() for t in data.get("topics", "").split(",") if t.strip()]
+    if not topics:
+        return JSONResponse({"error": "topics requerido"}, status_code=400)
+    strong = [t.strip() for t in data.get("strong_topics", "").split(",") if t.strip()]
+    weak   = [t.strip() for t in data.get("weak_topics", "").split(",") if t.strip()]
+    mem = get_memory(notebook)
+    weak_areas = [(a["area"] if isinstance(a, dict) else a) for a in mem.get("weak_areas", [])]
+    plan = generate_plan(
+        notebook, topics, exam_date,
+        weak_areas=weak_areas or None,
+        strong_topics=strong or None,
+        weak_topics=weak or None,
+    )
+    return JSONResponse({"plan": plan, "today_summary": today_plan_summary(notebook)})
 
 
 # ── Static / index ────────────────────────────────────────────────────────────
