@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Jarvis — Tutor</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: #0f1117; color: #e1e4e8; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+
+  header {
+    padding: 12px 20px;
+    background: #161b22;
+    border-bottom: 1px solid #30363d;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  header h1 { font-size: 1.1rem; font-weight: 600; color: #58a6ff; }
+  #status { font-size: 0.75rem; color: #8b949e; margin-left: auto; }
+  #status.speaking { color: #3fb950; }
+  #status.listening { color: #f0883e; }
+
+  #tts-btn, #settings-btn {
+    background: #21262d;
+    border: 1px solid #30363d;
+    border-radius: 6px;
+    color: #e1e4e8;
+    padding: 4px 10px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  #tts-btn:hover, #settings-btn:hover { background: #30363d; }
+  #tts-btn.muted { color: #8b949e; border-color: #21262d; }
+  #shortcut-label { font-size: 0.7rem; color: #8b949e; }
+  kbd {
+    background: #21262d;
+    border: 1px solid #484f58;
+    border-radius: 4px;
+    padding: 1px 5px;
+    font-size: 0.75rem;
+    font-family: monospace;
+    color: #e1e4e8;
+  }
+
+  /* Settings modal */
+  #modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+  }
+  #modal-overlay.open { display: flex; }
+  #modal {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 12px;
+    padding: 24px;
+    width: 440px;
+    max-width: 95vw;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  #modal h2 { font-size: 1rem; font-weight: 600; color: #e1e4e8; }
+  .field { display: flex; flex-direction: column; gap: 6px; }
+  .field label { font-size: 0.75rem; color: #8b949e; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+  .field input, .field select {
+    background: #0d1117;
+    border: 1px solid #30363d;
+    border-radius: 6px;
+    padding: 8px 10px;
+    color: #e1e4e8;
+    font-size: 0.9rem;
+    outline: none;
+    font-size: 16px;
+  }
+  .field input:focus, .field select:focus { border-color: #58a6ff; }
+  .field .hint { font-size: 0.75rem; color: #8b949e; }
+  .field .hint a { color: #58a6ff; }
+  .modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
+  .btn-primary { padding: 8px 20px; background: #238636; border: none; border-radius: 6px; color: #fff; font-size: 0.85rem; font-weight: 600; cursor: pointer; }
+  .btn-primary:hover { background: #2ea043; }
+  .btn-secondary { padding: 8px 16px; background: transparent; border: 1px solid #30363d; border-radius: 6px; color: #e1e4e8; font-size: 0.85rem; cursor: pointer; }
+  .btn-secondary:hover { background: #21262d; }
+  #modal-status { font-size: 0.8rem; color: #3fb950; min-height: 1em; }
+  .auth-box {
+    background: #0d1117;
+    border: 1px solid #30363d;
+    border-radius: 6px;
+    padding: 10px 12px;
+    font-size: 0.8rem;
+    color: #8b949e;
+    line-height: 1.6;
+  }
+  .auth-box code {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-family: monospace;
+    color: #e1e4e8;
+    font-size: 0.85em;
+  }
+
+  main {
+    flex: 1;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    overflow: hidden;
+  }
+
+  /* Chat panel */
+  #chat {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    border-right: 1px solid #30363d;
+    overflow: hidden;
+  }
+
+  #messages {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .msg { display: flex; flex-direction: column; gap: 4px; max-width: 85%; }
+  .msg.user { align-self: flex-end; }
+  .msg.jarvis { align-self: flex-start; }
+
+  .msg-label { font-size: 0.7rem; color: #8b949e; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+  .msg.user .msg-label { text-align: right; }
+
+  .msg-bubble {
+    padding: 12px 16px;
+    border-radius: 12px;
+    line-height: 1.6;
+    font-size: 0.92rem;
+  }
+  .msg.user .msg-bubble { background: #1f6feb; color: #fff; border-bottom-right-radius: 3px; }
+  .msg.jarvis .msg-bubble { background: #161b22; border: 1px solid #30363d; border-bottom-left-radius: 3px; }
+
+  .msg-bubble .katex-display { margin: 8px 0; }
+  .msg-bubble p { margin-bottom: 6px; }
+  .msg-bubble p:last-child { margin-bottom: 0; }
+  .msg-bubble ul, .msg-bubble ol { margin: 6px 0 6px 20px; }
+  .msg-bubble code { background: #0d1117; padding: 1px 5px; border-radius: 4px; font-size: 0.85em; }
+
+  #input-area {
+    padding: 12px 16px;
+    border-top: 1px solid #30363d;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    background: #0f1117;
+  }
+
+  #mic-btn {
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    border: none;
+    background: #21262d;
+    color: #e1e4e8;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: background 0.15s;
+    flex-shrink: 0;
+  }
+  #mic-btn:hover { background: #30363d; }
+  #mic-btn.active { background: #b91c1c; animation: pulse 1s infinite; }
+  @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.6; } }
+
+  #stop-btn {
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    border: none;
+    background: #1f6feb;
+    color: #fff;
+    font-size: 1rem;
+    cursor: pointer;
+    flex-shrink: 0;
+    display: none;
+  }
+
+  #text-input {
+    flex: 1;
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    padding: 8px 12px;
+    color: #e1e4e8;
+    font-size: 16px; /* prevents browser auto-zoom on focus */
+    outline: none;
+  }
+  #text-input:focus { border-color: #58a6ff; }
+
+  #send-btn {
+    padding: 8px 16px;
+    background: #238636;
+    border: none;
+    border-radius: 8px;
+    color: #fff;
+    font-size: 0.85rem;
+    cursor: pointer;
+    font-weight: 600;
+  }
+  #send-btn:hover { background: #2ea043; }
+
+  /* Sources panel */
+  #sidebar {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    background: #0d1117;
+    overflow: hidden;
+  }
+
+  .panel-title {
+    padding: 12px 16px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #8b949e;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid #21262d;
+  }
+
+  #context-box {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px;
+    font-size: 0.8rem;
+    line-height: 1.6;
+    color: #8b949e;
+  }
+  #context-box.has-content { color: #c9d1d9; }
+
+  #screenshot-box {
+    border-top: 1px solid #21262d;
+    padding: 8px;
+  }
+  #screenshot-box .panel-title { padding: 6px 4px 8px; border-bottom: none; }
+  #screenshot-img {
+    width: 100%;
+    max-height: 180px;
+    object-fit: contain;
+    border-radius: 6px;
+    border: 1px solid #21262d;
+    display: none;
+  }
+
+  #typing { color: #58a6ff; font-size: 0.8rem; padding: 4px 20px; height: 20px; }
+</style>
+</head>
+<body>
+
+<header>
+  <span>🤖</span>
+  <h1>Jarvis — Tutor de Procesos Estocásticos</h1>
+  <span id="shortcut-label">Hablar: <kbd id="shortcut-key">F2</kbd></span>
+  <button id="tts-btn" title="Activar/desactivar voz de Jarvis">🔊 Voz</button>
+  <button id="settings-btn" title="Ajustes">⚙️ Ajustes</button>
+  <span id="status">Conectando...</span>
+</header>
+
+<!-- Settings modal -->
+<div id="modal-overlay">
+  <div id="modal">
+    <h2>⚙️ Configuración de Jarvis</h2>
+
+    <div class="field">
+      <label>Gemini API Key</label>
+      <input id="cfg-apikey" type="password" placeholder="AIza..." autocomplete="off" />
+      <span class="hint">Consigue tu key gratuita en <a href="https://aistudio.google.com/apikey" target="_blank">aistudio.google.com/apikey</a></span>
+    </div>
+
+    <div class="field">
+      <label>Nombre del notebook</label>
+      <input id="cfg-notebook" type="text" placeholder="Ej: Procesos Estocasticos" />
+      <span class="hint">Debe coincidir con el notebook creado en NotebookLM.</span>
+    </div>
+
+    <div class="field">
+      <label>Conectar NotebookLM (apuntes)</label>
+      <div class="auth-box">
+        Ejecuta esto en la terminal una vez para conectar tu cuenta Google:<br><br>
+        <code>notebooklm auth login</code><br><br>
+        Tus apuntes deben estar subidos en <a href="https://notebooklm.google.com" target="_blank" style="color:#58a6ff">notebooklm.google.com</a> dentro del notebook configurado arriba.
+      </div>
+    </div>
+
+    <div id="modal-status"></div>
+
+    <div class="modal-actions">
+      <button class="btn-secondary" id="modal-cancel">Cancelar</button>
+      <button class="btn-primary" id="modal-save">Guardar y reiniciar</button>
+    </div>
+  </div>
+</div>
+
+<main>
+  <section id="chat">
+    <div id="messages"></div>
+    <div id="typing"></div>
+    <div id="input-area">
+      <button id="mic-btn" title="Mantén pulsado para hablar">🎤</button>
+      <button id="stop-btn" title="Interrumpir">⏹</button>
+      <input id="text-input" type="text" placeholder="Escribe tu mensaje o pulsa el micrófono..." />
+      <button id="send-btn">Enviar</button>
+    </div>
+  </section>
+
+  <aside id="sidebar">
+    <div class="panel-title">Contexto de apuntes</div>
+    <div id="context-box">Los fragmentos relevantes de tus apuntes aparecerán aquí.</div>
+    <div id="screenshot-box">
+      <div class="panel-title">Pantalla capturada</div>
+      <img id="screenshot-img" alt="Captura de pantalla" />
+    </div>
+  </aside>
+</main>
+
+<audio id="audio-player"></audio>
+
+<script>
+const messagesEl = document.getElementById('messages');
+const contextEl  = document.getElementById('context-box');
+const screenshotEl = document.getElementById('screenshot-img');
+const typingEl   = document.getElementById('typing');
+const statusEl   = document.getElementById('status');
+const textInput  = document.getElementById('text-input');
+const micBtn     = document.getElementById('mic-btn');
+const stopBtn    = document.getElementById('stop-btn');
+const sendBtn    = document.getElementById('send-btn');
+const audioPlayer = document.getElementById('audio-player');
+
+let ws;
+let recognition;
+let ttsEnabled = true;
+let pushKey = 'F2'; // ← cambia aquí la tecla: 'F2', 'v', 'Tab', '\', etc.
+let isRecording = false;
+let accumulatedTranscript = '';
+
+// --- WebSocket ---
+function connect() {
+  ws = new WebSocket(`ws://${location.host}/ws`);
+
+  ws.onopen = () => setStatus('Conectado', '');
+
+  ws.onmessage = (event) => {
+    const msg = JSON.parse(event.data);
+
+    if (msg.type === 'welcome' || msg.type === 'response') {
+      typingEl.textContent = '';
+      addMessage('jarvis', msg.text);
+      updateContext(msg.context || '');
+      updateScreenshot(msg.screenshot);
+      if (msg.audio) playAudio(msg.audio);
+      if (msg.exit) setStatus('Sesión terminada', '');
+    } else if (msg.type === 'error') {
+      addMessage('jarvis', '⚠️ ' + msg.text);
+    } else if (msg.type === 'setup_required') {
+      handleSetupRequired(msg);
+    }
+  };
+
+  ws.onclose = () => setStatus('Desconectado', '');
+  ws.onerror = () => setStatus('Error de conexión', '');
+}
+
+function send(text) {
+  if (!ws || ws.readyState !== WebSocket.OPEN || !text.trim()) return;
+  addMessage('user', text);
+  typingEl.textContent = 'Jarvis está pensando...';
+  ws.send(JSON.stringify({ type: 'message', text }));
+  textInput.value = '';
+}
+
+// --- UI helpers ---
+function setStatus(text, cls) {
+  statusEl.textContent = text;
+  statusEl.className = cls;
+}
+
+function addMessage(role, text) {
+  const div = document.createElement('div');
+  div.className = `msg ${role}`;
+
+  const label = document.createElement('div');
+  label.className = 'msg-label';
+  label.textContent = role === 'user' ? 'Tú' : 'Jarvis';
+
+  const bubble = document.createElement('div');
+  bubble.className = 'msg-bubble';
+  bubble.innerHTML = marked.parse(text);
+
+  renderMathInElement(bubble, {
+    delimiters: [
+      { left: '$$', right: '$$', display: true },
+      { left: '$', right: '$', display: false },
+    ],
+    throwOnError: false,
+  });
+
+  div.appendChild(label);
+  div.appendChild(bubble);
+  messagesEl.appendChild(div);
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+
+function updateContext(text) {
+  if (text && text.trim()) {
+    contextEl.innerHTML = marked.parse(text);
+    renderMathInElement(contextEl, {
+      delimiters: [
+        { left: '$$', right: '$$', display: true },
+        { left: '$', right: '$', display: false },
+      ],
+      throwOnError: false,
+    });
+    contextEl.classList.add('has-content');
+  }
+}
+
+function updateScreenshot(b64) {
+  if (b64) {
+    screenshotEl.src = 'data:image/png;base64,' + b64;
+    screenshotEl.style.display = 'block';
+  }
+}
+
+// --- TTS toggle ---
+const ttsBtn = document.getElementById('tts-btn');
+ttsBtn.onclick = () => {
+  ttsEnabled = !ttsEnabled;
+  ttsBtn.textContent = ttsEnabled ? '🔊 Voz' : '🔇 Voz';
+  ttsBtn.classList.toggle('muted', !ttsEnabled);
+  if (!ttsEnabled) stopAudio();
+};
+
+// --- Audio ---
+function playAudio(b64) {
+  if (!ttsEnabled) return;
+  stopAudio();
+  const blob = new Blob([Uint8Array.from(atob(b64), c => c.charCodeAt(0))], { type: 'audio/mpeg' });
+  audioPlayer.src = URL.createObjectURL(blob);
+  audioPlayer.play();
+  setStatus('Hablando...', 'speaking');
+  stopBtn.style.display = 'flex';
+
+  audioPlayer.onended = () => {
+    setStatus('Conectado', '');
+    stopBtn.style.display = 'none';
+  };
+}
+
+function stopAudio() {
+  audioPlayer.pause();
+  audioPlayer.src = '';
+  stopBtn.style.display = 'none';
+}
+
+stopBtn.onclick = stopAudio;
+
+// --- Voice input (Web Speech API) ---
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+function startRecording() {
+  if (isRecording) return;
+  accumulatedTranscript = '';
+  isRecording = true;
+  stopAudio();
+  recognition.start();
+}
+
+function stopRecording() {
+  if (!isRecording) return;
+  recognition.stop(); // onend will send
+}
+
+if (SpeechRecognition) {
+  recognition = new SpeechRecognition();
+  recognition.lang = 'es-ES';
+  recognition.continuous = true;      // keep recording until stopped
+  recognition.interimResults = false;
+
+  recognition.onresult = (e) => {
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      if (e.results[i].isFinal) {
+        accumulatedTranscript += e.results[i][0].transcript + ' ';
+        textInput.value = accumulatedTranscript.trim();
+      }
+    }
+  };
+  recognition.onstart = () => {
+    micBtn.classList.add('active');
+    setStatus('Grabando... (pulsa F2 para enviar)', 'listening');
+  };
+  recognition.onend = () => {
+    micBtn.classList.remove('active');
+    isRecording = false;
+    setStatus('Conectado', '');
+    if (accumulatedTranscript.trim()) {
+      send(accumulatedTranscript.trim());
+      accumulatedTranscript = '';
+    }
+  };
+  recognition.onerror = () => {
+    micBtn.classList.remove('active');
+    isRecording = false;
+  };
+
+  micBtn.onclick = () => isRecording ? stopRecording() : startRecording();
+
+} else {
+  micBtn.title = 'Tu navegador no soporta voz — usa el texto';
+  micBtn.style.opacity = '0.4';
+  micBtn.onclick = () => alert('Usa Chrome para el micrófono.');
+}
+
+// --- Keyboard shortcuts ---
+textInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(textInput.value); }
+});
+sendBtn.onclick = () => send(textInput.value);
+
+// Toggle recording: press key once to start, again to stop and send
+document.addEventListener('keydown', (e) => {
+  if (document.activeElement === textInput) return;
+  if (e.key === pushKey && recognition) {
+    e.preventDefault();
+    isRecording ? stopRecording() : startRecording();
+  }
+});
+
+// Show configured key in header
+const keyLabel = document.getElementById('shortcut-key');
+keyLabel.textContent = pushKey;
+
+// --- Settings modal ---
+const overlay     = document.getElementById('modal-overlay');
+const settingsBtn = document.getElementById('settings-btn');
+const modalCancel = document.getElementById('modal-cancel');
+const modalSave   = document.getElementById('modal-save');
+const modalStatus = document.getElementById('modal-status');
+const cfgApiKey   = document.getElementById('cfg-apikey');
+const cfgNotebook = document.getElementById('cfg-notebook');
+
+async function openSettings() {
+  modalStatus.textContent = '';
+  const res = await fetch('/api/config');
+  const cfg = await res.json();
+  cfgApiKey.placeholder  = cfg.has_api_key ? '(guardada — pega nueva para cambiar)' : 'AIza...';
+  cfgNotebook.value      = cfg.active_notebook || '';
+  overlay.classList.add('open');
+}
+
+settingsBtn.onclick = openSettings;
+modalCancel.onclick = () => overlay.classList.remove('open');
+overlay.onclick = (e) => { if (e.target === overlay) overlay.classList.remove('open'); };
+
+modalSave.onclick = async () => {
+  modalStatus.textContent = 'Guardando...';
+  modalStatus.style.color = '#8b949e';
+  const body = {};
+  if (cfgApiKey.value.trim())   body.api_key  = cfgApiKey.value.trim();
+  if (cfgNotebook.value.trim()) body.notebook  = cfgNotebook.value.trim();
+  await fetch('/api/config', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  modalStatus.textContent = '✓ Guardado. Reconectando...';
+  modalStatus.style.color = '#3fb950';
+  overlay.classList.remove('open');
+  setTimeout(() => { connect(); }, 800);
+};
+
+// Handle setup_required message from server
+function handleSetupRequired(msg) {
+  addMessage('jarvis', `⚠️ **Configuración necesaria**\n\n${msg.text}`);
+  setTimeout(openSettings, 600);
+}
+
+// --- Init ---
+connect();
+</script>
+</body>
+</html>
