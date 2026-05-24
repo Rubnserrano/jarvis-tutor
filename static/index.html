@@ -108,11 +108,11 @@ header {
 #radio-widget {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 7px;
   background: var(--surface2);
   border: 1px solid var(--border);
   border-radius: 20px;
-  padding: 4px 10px 4px 8px;
+  padding: 4px 12px 4px 8px;
   margin: 0 auto;
   flex-shrink: 0;
 }
@@ -150,34 +150,23 @@ header {
 }
 #radio-toggle.playing .radio-dot { display: block; }
 
-.radio-station-name {
+#radio-select {
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
   font-size: 0.72rem;
   font-weight: 600;
-  color: var(--text-dim);
-  width: 96px;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  cursor: default;
+  font-family: inherit;
+  cursor: pointer;
+  outline: none;
+  max-width: 110px;
   transition: color var(--transition);
 }
-#radio-toggle.playing ~ .radio-station-name { color: var(--amber); }
-
-.radio-nav {
-  background: none;
-  border: none;
-  color: var(--text-muted);
-  cursor: pointer;
-  font-size: 11px;
-  padding: 2px 3px;
-  border-radius: 3px;
-  transition: var(--transition);
-  line-height: 1;
-}
-.radio-nav:hover { color: var(--text); background: var(--border); }
+#radio-select option { background: var(--surface2); color: var(--text); }
+#radio-toggle.playing ~ #radio-select { color: var(--amber); }
 
 #radio-vol {
-  width: 56px;
+  width: 52px;
   height: 3px;
   appearance: none;
   background: var(--border-s);
@@ -568,6 +557,125 @@ main {
 }
 .panel-scroll.has-content { color: var(--text-dim); }
 
+/* Source reference cards */
+#sources-panel {
+  border-top: 1px solid var(--border);
+  padding: 8px 10px;
+  flex-shrink: 0;
+  display: none;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 240px;
+  overflow-y: auto;
+}
+#sources-panel.visible { display: flex; }
+.sources-label {
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-muted);
+  padding-bottom: 2px;
+}
+.src-card {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-left: 2px solid var(--violet-dim);
+  border-radius: 0 var(--radius-s) var(--radius-s) 0;
+  padding: 7px 9px;
+  transition: border-color var(--transition);
+}
+.src-card:hover { border-color: var(--violet); border-left-color: var(--violet); }
+.src-header { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+.src-num {
+  font-size: 0.6rem;
+  font-weight: 700;
+  background: var(--violet-bg);
+  color: var(--violet);
+  border: 1px solid rgba(167,139,250,0.3);
+  border-radius: 3px;
+  padding: 0 4px;
+  min-width: 18px;
+  text-align: center;
+}
+.src-title { font-size: 0.72rem; font-weight: 600; color: var(--text-dim); flex: 1; }
+.src-cited {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.src-more-btn {
+  margin-top: 5px;
+  background: none;
+  border: none;
+  color: var(--violet);
+  font-size: 0.68rem;
+  font-family: inherit;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.src-more-btn:hover { color: var(--text); }
+
+/* Source context modal */
+#src-modal {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.8);
+  backdrop-filter: blur(6px);
+  z-index: 300;
+  align-items: center;
+  justify-content: center;
+}
+#src-modal.open { display: flex; }
+#src-modal-box {
+  background: var(--surface);
+  border: 1px solid var(--border-s);
+  border-radius: var(--radius-l);
+  padding: 24px;
+  width: 600px;
+  max-width: 94vw;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 32px 80px rgba(0,0,0,0.7);
+}
+#src-modal-title {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--violet);
+}
+#src-modal-content {
+  flex: 1;
+  overflow-y: auto;
+  font-size: 0.82rem;
+  line-height: 1.75;
+  color: var(--text-dim);
+  white-space: pre-wrap;
+  background: var(--surface2);
+  border-radius: var(--radius-s);
+  padding: 12px 14px;
+}
+#src-modal-close {
+  align-self: flex-end;
+  padding: 6px 18px;
+  background: transparent;
+  border: 1px solid var(--border-s);
+  border-radius: var(--radius-s);
+  color: var(--text-dim);
+  font-size: 0.8rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: var(--transition);
+}
+#src-modal-close:hover { background: var(--surface2); color: var(--text); }
+
 /* Screenshot box */
 #screenshot-box {
   border-top: 1px solid var(--border);
@@ -716,10 +824,13 @@ main {
       ♪
       <span class="radio-dot"></span>
     </button>
-    <span class="radio-station-name" id="radio-name">Groove Salad</span>
-    <button class="radio-nav" id="radio-prev" title="Estación anterior">‹</button>
-    <button class="radio-nav" id="radio-next" title="Estación siguiente">›</button>
-    <input id="radio-vol" type="range" min="0" max="1" step="0.05" value="0.3" title="Volumen música">
+    <select id="radio-select" title="Cambiar estación">
+      <option value="0">Groove Salad</option>
+      <option value="1">Drone Zone</option>
+      <option value="2">Beat Blender</option>
+      <option value="3">Suburbs of Goa</option>
+    </select>
+    <input id="radio-vol" type="range" min="0" max="1" step="0.05" value="0.3" title="Volumen">
   </div>
 
   <div class="header-actions">
@@ -792,6 +903,10 @@ main {
     <!-- Tab: Apuntes -->
     <div id="tab-apuntes" class="tab-panel active">
       <div id="context-box" class="panel-scroll">Los fragmentos relevantes de tus apuntes aparecerán aquí tras cada respuesta.</div>
+      <div id="sources-panel">
+        <div class="sources-label">Fuentes citadas</div>
+        <div id="sources-list"></div>
+      </div>
       <div id="screenshot-box">
         <div class="ss-title">Pantalla capturada</div>
         <img id="screenshot-img" alt="Captura de pantalla" />
@@ -819,6 +934,15 @@ main {
   </aside>
 </main>
 
+<!-- Source context modal -->
+<div id="src-modal">
+  <div id="src-modal-box">
+    <div id="src-modal-title"></div>
+    <div id="src-modal-content"></div>
+    <button id="src-modal-close">Cerrar</button>
+  </div>
+</div>
+
 <!-- Separate audio elements -->
 <audio id="tts-player"></audio>
 <audio id="radio-player" preload="none"></audio>
@@ -828,56 +952,53 @@ main {
    LOFI RADIO
 ════════════════════════════════════ */
 const STATIONS = [
-  { name: "Groove Salad",    url: "https://ice1.somafm.com/groovesalad-256-mp3" },
-  { name: "Drone Zone",      url: "https://ice1.somafm.com/dronezone-256-mp3"   },
-  { name: "Beat Blender",    url: "https://ice1.somafm.com/beatblender-128-mp3" },
-  { name: "Suburbs of Goa",  url: "https://ice1.somafm.com/suburbsofgoa-128-mp3"},
+  { name: "Groove Salad",   url: "https://ice1.somafm.com/groovesalad-256-mp3"  },
+  { name: "Drone Zone",     url: "https://ice1.somafm.com/dronezone-256-mp3"    },
+  { name: "Beat Blender",   url: "https://ice1.somafm.com/beatblender-128-mp3"  },
+  { name: "Suburbs of Goa", url: "https://ice1.somafm.com/suburbsofgoa-128-mp3" },
 ];
 
-let radioIdx     = 0;
 let radioPlaying = false;
 const radioPlayer = document.getElementById('radio-player');
 const radioToggle = document.getElementById('radio-toggle');
-const radioName   = document.getElementById('radio-name');
+const radioSelect = document.getElementById('radio-select');
 const radioVol    = document.getElementById('radio-vol');
 
 radioPlayer.volume = parseFloat(radioVol.value);
 radioVol.addEventListener('input', () => { radioPlayer.volume = parseFloat(radioVol.value); });
 
-function radioSetStation(idx) {
-  radioIdx = (idx + STATIONS.length) % STATIONS.length;
-  radioName.textContent = STATIONS[radioIdx].name;
+radioSelect.addEventListener('change', () => {
+  const idx = parseInt(radioSelect.value);
   if (radioPlaying) {
-    radioPlayer.src = STATIONS[radioIdx].url;
+    radioPlayer.src = STATIONS[idx].url;
     radioPlayer.play().catch(() => {});
   }
-}
+});
 
 function radioTogglePlay() {
+  const idx = parseInt(radioSelect.value);
   if (radioPlaying) {
     radioPlayer.pause();
     radioPlayer.src = '';
     radioPlaying = false;
     radioToggle.classList.remove('playing');
   } else {
-    radioPlayer.src = STATIONS[radioIdx].url;
+    radioPlayer.src = STATIONS[idx].url;
     radioPlayer.play().then(() => {
       radioPlaying = true;
       radioToggle.classList.add('playing');
-    }).catch(e => {
-      console.warn('Radio stream error:', e);
-    });
+    }).catch(e => console.warn('Radio error:', e));
   }
 }
 
 radioToggle.addEventListener('click', radioTogglePlay);
-document.getElementById('radio-prev').addEventListener('click', () => radioSetStation(radioIdx - 1));
-document.getElementById('radio-next').addEventListener('click', () => radioSetStation(radioIdx + 1));
 radioPlayer.addEventListener('playing', () => { radioPlaying = true; radioToggle.classList.add('playing'); });
-radioPlayer.addEventListener('pause',   () => { radioToggle.classList.remove('playing'); });
+radioPlayer.addEventListener('pause',   () => { radioPlaying = false; radioToggle.classList.remove('playing'); });
 radioPlayer.addEventListener('error',   () => {
-  // Auto-try next station on error
-  setTimeout(() => radioSetStation(radioIdx + 1), 2000);
+  // Auto-advance on stream error
+  const next = (parseInt(radioSelect.value) + 1) % STATIONS.length;
+  radioSelect.value = next;
+  setTimeout(radioTogglePlay, 1500);
 });
 
 /* ════════════════════════════════════
@@ -895,6 +1016,12 @@ const sendBtn      = document.getElementById('send-btn');
 const ttsPlayer    = document.getElementById('tts-player');
 const planBoxEl    = document.getElementById('plan-box');
 const exBoxEl      = document.getElementById('exercises-box');
+const sourcesPanel  = document.getElementById('sources-panel');
+const sourcesList   = document.getElementById('sources-list');
+const srcModal      = document.getElementById('src-modal');
+const srcModalTitle = document.getElementById('src-modal-title');
+const srcModalContent = document.getElementById('src-modal-content');
+const srcModalClose = document.getElementById('src-modal-close');
 
 let ws;
 let ttsEnabled = true;
@@ -920,6 +1047,7 @@ function connect() {
       setTyping(false);
       addMessage('jarvis', msg.text);
       updateContext(msg.context || '');
+      updateReferences(msg.references || []);
       updateScreenshot(msg.screenshot);
       if (msg.audio) playTTS(msg.audio);
       if (msg.exit) setStatus('Sesión terminada', '');
@@ -979,6 +1107,53 @@ function updateContext(text) {
     contextEl.innerHTML = marked.parse(text);
     renderMathInElement(contextEl, KATEX_OPTS);
     contextEl.classList.add('has-content');
+  }
+}
+
+function updateReferences(refs) {
+  if (!refs || !refs.length) {
+    sourcesPanel.classList.remove('visible');
+    return;
+  }
+  sourcesPanel.classList.add('visible');
+  sourcesList.innerHTML = '';
+
+  for (const ref of refs) {
+    const card = document.createElement('div');
+    card.className = 'src-card';
+
+    const header = document.createElement('div');
+    header.className = 'src-header';
+
+    const num = document.createElement('span');
+    num.className = 'src-num';
+    num.textContent = ref.citation_number ? `[${ref.citation_number}]` : '—';
+
+    const title = document.createElement('span');
+    title.className = 'src-title';
+    title.textContent = ref.title || 'Fuente desconocida';
+
+    header.appendChild(num);
+    header.appendChild(title);
+    card.appendChild(header);
+
+    // Show first cited text snippet
+    const firstText = ref.cited_texts?.[0];
+    if (firstText) {
+      const cited = document.createElement('div');
+      cited.className = 'src-cited';
+      cited.textContent = firstText;
+      card.appendChild(cited);
+
+      // "Ver contexto completo" button
+      const moreBtn = document.createElement('button');
+      moreBtn.className = 'src-more-btn';
+      moreBtn.textContent = 'Ver contexto en la fuente →';
+      moreBtn.addEventListener('click', () => openSourceContext(ref, firstText));
+      card.appendChild(moreBtn);
+    }
+
+    sourcesList.appendChild(card);
   }
 }
 
@@ -1121,6 +1296,31 @@ modalSave.addEventListener('click', async () => {
   overlay.classList.remove('open');
   setTimeout(connect, 800);
 });
+
+/* ════════════════════════════════════
+   SOURCE CONTEXT MODAL
+════════════════════════════════════ */
+async function openSourceContext(ref, citedText) {
+  srcModalTitle.textContent = ref.title || 'Fuente';
+  srcModalContent.textContent = 'Cargando contexto...';
+  srcModal.classList.add('open');
+
+  try {
+    const res = await fetch('/api/source-context', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ source_id: ref.source_id, cited_text: citedText }),
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    srcModalContent.textContent = data.content || '(Sin contenido disponible)';
+  } catch(e) {
+    srcModalContent.textContent = '⚠ No se pudo cargar el contexto: ' + e.message;
+  }
+}
+
+srcModalClose.addEventListener('click', () => srcModal.classList.remove('open'));
+srcModal.addEventListener('click', e => { if (e.target === srcModal) srcModal.classList.remove('open'); });
 
 /* ════════════════════════════════════
    TABS

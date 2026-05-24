@@ -13,7 +13,7 @@ from google.genai import types
 from jarvis.exercises import add_exercise, exercises_context, find_similar
 from jarvis.memory import record_session, summarize_memory
 from jarvis.planner import today_plan_summary
-from jarvis.query import search_notes
+from jarvis.query import search_notes_with_references
 from jarvis.screen import capture_screenshot
 
 load_dotenv()
@@ -74,6 +74,8 @@ class TutorSession:
         self.history: list[types.Content] = []
         self.last_context = ""
         self.last_screenshot_path: str | None = None
+        self.last_references: list[dict] = []
+        self._notation_detected = False
 
         memory_summary = summarize_memory(notebook_name)
         exercises_ctx = exercises_context(notebook_name)
@@ -95,13 +97,50 @@ class TutorSession:
             "¿Qué ejercicio o tema quieres trabajar hoy?"
         )
 
+    def _detect_and_apply_notation(self, sample: str) -> None:
+        """Extract notation conventions from a notes sample and append to system prompt."""
+        if not sample or len(sample) < 100:
+            return
+        prompt = (
+            "Del siguiente fragmento de apuntes, extrae la notación matemática que se usa. "
+            "Lista únicamente los símbolos y variables clave con su significado. "
+            "Sé muy conciso (máximo 12 líneas). Si no hay notación clara, responde vacío.\n\n"
+            "Formato de respuesta:\n- $símbolo$: significado\n\n"
+            f"Fragmento:\n{sample[:2500]}"
+        )
+        try:
+            response = self.client.models.generate_content(
+                model="gemini-2.5-flash",
+                contents=[types.Content(role="user", parts=[types.Part(text=prompt)])],
+                config=types.GenerateContentConfig(temperature=0.1),
+            )
+            notation = response.text.strip()
+            if notation and len(notation) > 20:
+                self.system_prompt += (
+                    f"\n\n## Notación de los apuntes del alumno\n"
+                    f"Usa SIEMPRE esta notación en tus respuestas:\n{notation}"
+                )
+        except Exception:
+            pass
+
     def _fetch_context(self, message: str) -> str:
         if not _needs_search(message):
-            # Keep last context — don't overwrite with irrelevant results
             return self.last_context if self.last_context else ""
         try:
-            result = asyncio.run(search_notes(message, notebook_name=self.notebook_name))
+            result, references = asyncio.run(
+                search_notes_with_references(message, notebook_name=self.notebook_name)
+            )
             self.last_context = result
+            self.last_references = references
+
+            if not self._notation_detected:
+                # Use cited texts (raw source passages) for notation detection
+                sample = " ".join(
+                    t for ref in references for t in ref.get("cited_texts", [])
+                ) or result
+                self._detect_and_apply_notation(sample)
+                self._notation_detected = True
+
             return result
         except Exception as e:
             self.last_context = (

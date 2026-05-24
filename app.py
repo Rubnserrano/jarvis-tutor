@@ -16,6 +16,7 @@ from datetime import date as _date
 
 from jarvis.exercises import get_exercises
 from jarvis.planner import generate_plan, get_plan, today_plan_summary
+from jarvis.query import get_source_context
 from jarvis.settings import get_active_notebook, set_active_notebook
 from jarvis.tutor import TutorSession
 from jarvis.voice import _VOICE, _RATE, _clean_latex
@@ -93,6 +94,22 @@ async def api_create_plan(data: dict):
         weak_topics=weak or None,
     )
     return JSONResponse({"plan": plan, "today_summary": today_plan_summary(notebook)})
+
+
+# ── Source context ────────────────────────────────────────────────────────────
+
+@app.post("/api/source-context")
+async def api_source_context(data: dict):
+    source_id  = data.get("source_id", "").strip()
+    cited_text = data.get("cited_text", "").strip()
+    if not source_id:
+        return JSONResponse({"error": "source_id required"}, status_code=400)
+    notebook = get_active_notebook()
+    try:
+        ctx = await get_source_context(notebook, source_id, cited_text, context_chars=600)
+        return JSONResponse(ctx)
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
 
 
 # ── Static / index ────────────────────────────────────────────────────────────
@@ -181,6 +198,7 @@ async def ws_endpoint(websocket: WebSocket):
                 "type": "response",
                 "text": response,
                 "context": session.last_context,
+                "references": session.last_references,
                 "screenshot": screenshot,
                 "audio": audio,
                 "exit": should_exit,
