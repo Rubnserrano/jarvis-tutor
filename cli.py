@@ -11,7 +11,7 @@ from jarvis.settings import get_active_notebook, set_active_notebook
 
 @click.group()
 def cli():
-    """Jarvis — your personal learning assistant."""
+    """Sazed — your personal learning assistant."""
 
 
 @cli.command()
@@ -123,7 +123,7 @@ def study(notebook, text, context_file):
         raise click.ClickException(str(e))
 
     welcome = session.start()
-    click.echo(f"\nJarvis> {welcome}\n")
+    click.echo(f"\nSazed>{welcome}\n")
     if not text:
         speak(welcome)
 
@@ -146,13 +146,13 @@ def study(notebook, text, context_file):
 
             if should_exit:
                 farewell = "¡Hasta la próxima! Guardando tu progreso..."
-                click.echo(f"\nJarvis> {farewell}")
+                click.echo(f"\nSazed>{farewell}")
                 if not text:
                     speak(farewell)
                 session.save()
                 break
 
-            click.echo(f"\nJarvis> {response}\n")
+            click.echo(f"\nSazed>{response}\n")
             if not text:
                 interrupted = speak(response)
                 if interrupted:

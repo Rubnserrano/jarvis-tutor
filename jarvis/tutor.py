@@ -14,13 +14,70 @@ from jarvis.exercises import add_exercise, exercises_context, find_similar
 from jarvis.memory import record_session, summarize_memory
 from jarvis.planner import today_plan_summary
 from jarvis.query import search_notes_with_references
-from jarvis.screen import capture_screenshot
 
 load_dotenv()
 
 CONTEXT_DIR = Path(__file__).parent.parent / "context"
 _EXIT_KEYWORDS = {"salir", "exit", "quit", "adiós", "bye"}
 _MEMORY_KEYWORDS = {"memoria", "progreso", "qué hemos visto"}
+
+MODES = {"examen", "tutor", "explicacion", "companero", "pizarra"}
+
+_MODE_INSTRUCTIONS: dict[str, str] = {
+    "examen": (
+        "MODO EXAMEN ACTIVO: Nunca reveles la respuesta completa. Tu función es únicamente "
+        "validar si el razonamiento del alumno va bien o señalar el primer error. "
+        "Si el alumno pide la solución directamente, dile que debe llegar solo. "
+        "Solo haz preguntas de validación, no expliques el procedimiento."
+    ),
+    "tutor": (
+        "MODO TUTOR: Guía al alumno paso a paso. Haz una sola pregunta intermedia por turno. "
+        "Da pistas progresivas antes de revelar algo. No des el siguiente paso sin que el alumno intente el actual."
+    ),
+    "explicacion": (
+        "MODO EXPLICACIÓN: Explica el concepto o problema de forma completa, directa y clara. "
+        "Incluye ejemplos y razonamiento. No hagas preguntas Socráticas — explica tú."
+    ),
+    "companero": (
+        "MODO COMPAÑERO: Resuelve el ejercicio como si fueras un compañero de estudio. "
+        "Usa 'nosotros', piensa en voz alta, muestra tus dudas y razona junto al alumno. "
+        "Sé natural, colaborativo y cercano."
+    ),
+    "pizarra": (
+        "MODO PIZARRA: Estás observando periódicamente la pantalla o pizarra del alumno mientras trabaja. "
+        "Sé MUY breve — máximo 2 frases. "
+        "Si el trabajo parece correcto: di solo '✓ Bien, continúa.' "
+        "Si ves un error obvio: señálalo en una frase directa sin explicar el procedimiento completo. "
+        "Si no hay actividad visible: di 'Sin actividad visible.' "
+        "Solo responde con más detalle si el alumno te pregunta algo directamente."
+    ),
+}
+
+_HINT_INSTRUCTIONS: dict[int, str] = {
+    1: (
+        "El alumno pide una PISTA NIVEL 1 (muy pequeña). Da únicamente una orientación "
+        "general sin mencionar el procedimiento ni la fórmula concreta. Máximo 2 frases."
+    ),
+    2: (
+        "El alumno pide una PISTA NIVEL 2. Indica qué concepto o fórmula debe usar, "
+        "sin mostrar cómo aplicarla. Máximo 3 frases."
+    ),
+    3: (
+        "El alumno pide una PISTA NIVEL 3. Muestra el siguiente paso parcial sin completarlo. "
+        "Máximo 4 frases."
+    ),
+    4: (
+        "El alumno pide una PISTA NIVEL 4 (casi solución). Muestra el desarrollo hasta "
+        "casi el final dejando el último paso al alumno."
+    ),
+}
+
+_HINT_RE = re.compile(
+    r"\b(pista|hint|ayuda un poco|clue|no\s+s[eé]|no\s+entiendo|atascad[oa]|"
+    r"bloqueado|ayúdame|ayudame|una\s+pista|dame\s+una\s+pista|otra\s+pista|"
+    r"pista\s+m[aá]s\s+grande|pista\s+m[aá]s\s+peque[ñn]a)\b",
+    re.IGNORECASE,
+)
 
 _CONTINUATION_RE = re.compile(
     r"^("
@@ -76,6 +133,8 @@ class TutorSession:
         self.last_screenshot_path: str | None = None
         self.last_references: list[dict] = []
         self._notation_detected = False
+        self.mode: str = "tutor"
+        self.hint_level: int = 0
 
         memory_summary = summarize_memory(notebook_name)
         exercises_ctx = exercises_context(notebook_name)
@@ -96,6 +155,11 @@ class TutorSession:
             f"Hola, soy tu tutor de {self.notebook_name}. "
             "¿Qué ejercicio o tema quieres trabajar hoy?"
         )
+
+    def set_mode(self, mode: str) -> None:
+        if mode in MODES:
+            self.mode = mode
+            self.hint_level = 0
 
     def _detect_and_apply_notation(self, sample: str) -> None:
         """Extract notation conventions from a notes sample and append to system prompt."""
@@ -167,27 +231,39 @@ class TutorSession:
         self.history.append(types.Content(role="model", parts=[types.Part(text=reply)]))
         return reply
 
-    def chat_text(self, message: str, image_path: str | None = None) -> str:
+    def chat_text(self, message: str, image_path: str | None = None, is_hint: bool = False) -> str:
         context = self._fetch_context(message)
         parts: list = []
 
         if context:
             parts.append(f"[Contexto de tus apuntes]\n{context}\n")
 
+        mode_instr = _MODE_INSTRUCTIONS.get(self.mode, "")
+        if mode_instr:
+            parts.append(f"[INSTRUCCIÓN DE MODO: {mode_instr}]")
+
+        if is_hint:
+            hint_instr = _HINT_INSTRUCTIONS.get(self.hint_level, _HINT_INSTRUCTIONS[4])
+            parts.append(f"[INSTRUCCIÓN DE PISTA: {hint_instr}]")
+
         if image_path:
             try:
                 img_bytes = Path(image_path).read_bytes()
+                mime = "image/png" if image_path.endswith(".png") else "image/jpeg"
                 parts.append(
-                    types.Part(inline_data=types.Blob(mime_type="image/png", data=img_bytes))
+                    types.Part(inline_data=types.Blob(mime_type=mime, data=img_bytes))
                 )
-                parts.append("Aquí tienes el estado actual de la pantalla del alumno.")
+                if is_hint:
+                    parts.append("El alumno ha enviado una imagen de su trabajo. Analiza dónde está el error o el punto de bloqueo.")
+                else:
+                    parts.append("Aquí tienes la imagen enviada por el alumno.")
             except Exception as e:
-                parts.append(f"[No se pudo cargar el screenshot: {e}]")
+                parts.append(f"[No se pudo cargar la imagen: {e}]")
 
-        parts.append(message)
+        parts.append(message if message != "__hint__" else "Dame una pista")
         return self._send(parts)
 
-    def handle(self, message: str) -> tuple[str, bool]:
+    def handle(self, message: str, uploaded_image_path: str | None = None) -> tuple[str, bool]:
         lower = message.lower().strip()
 
         if any(k in lower for k in _EXIT_KEYWORDS):
@@ -196,14 +272,52 @@ class TutorSession:
         if any(k in lower for k in _MEMORY_KEYWORDS):
             return summarize_memory(self.notebook_name), False
 
-        screenshot_path = None
-        try:
-            screenshot_path = capture_screenshot()
-            self.last_screenshot_path = screenshot_path
-        except RuntimeError:
-            self.last_screenshot_path = None
+        is_hint = message.strip() == "__hint__" or bool(_HINT_RE.search(lower))
+        if is_hint:
+            self.hint_level = min(self.hint_level + 1, 4)
 
-        return self.chat_text(message, image_path=screenshot_path), False
+        image_path = uploaded_image_path
+        self.last_screenshot_path = None
+
+        return self.chat_text(message, image_path=image_path, is_hint=is_hint), False
+
+    def handle_screen_capture(self, image_path: str) -> tuple[str, bool]:
+        """User manually triggered a screen capture — analyse and provide feedback."""
+        self.last_screenshot_path = image_path
+        return self.chat_text(
+            "El alumno acaba de capturar su pantalla para que la analices. "
+            "Describe brevemente lo que ves y da feedback conciso.",
+            image_path=image_path,
+        ), False
+
+    def _quick_analyze(self, parts: list) -> str:
+        """One-shot Gemini call that does NOT modify conversation history."""
+        response = self.client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=[types.Content(
+                role="user",
+                parts=[types.Part(text=str(p)) if isinstance(p, str) else p for p in parts],
+            )],
+            config=types.GenerateContentConfig(
+                system_instruction=self.system_prompt,
+                temperature=0.2,
+            ),
+        )
+        return response.text
+
+    def handle_whiteboard(self, image_path: str) -> tuple[str, bool]:
+        """Periodic whiteboard check — brief feedback only, does not pollute history."""
+        parts: list = [
+            f"[{_MODE_INSTRUCTIONS['pizarra']}]\n"
+            "Observa la imagen de la pantalla/pizarra del alumno y da feedback MUY breve (máximo 2 frases).",
+        ]
+        try:
+            img_bytes = Path(image_path).read_bytes()
+            parts.append(types.Part(inline_data=types.Blob(mime_type="image/png", data=img_bytes)))
+        except Exception as e:
+            return f"No se pudo capturar la pantalla: {e}", False
+        parts.append("¿El alumno va bien?")
+        return self._quick_analyze(parts), False
 
     def _extract_session_data(self) -> dict:
         if not self.history:

@@ -2,7 +2,7 @@
 chcp 65001 >nul
 echo.
 echo ╔══════════════════════════════════════╗
-echo ║     Jarvis Tutor — Setup inicial     ║
+echo ║     Sazed Tutor — Setup inicial     ║
 echo ╚══════════════════════════════════════╝
 echo.
 
@@ -74,7 +74,7 @@ echo.
 echo ╔══════════════════════════════════════╗
 echo ║          Setup completado!           ║
 echo ║                                      ║
-echo ║  Para iniciar Jarvis:                ║
+echo ║  Para iniciar Sazed:                ║
 echo ║    .venv-win\Scripts\activate        ║
 echo ║    python app.py                     ║
 echo ║                                      ║

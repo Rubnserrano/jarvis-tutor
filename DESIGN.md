@@ -1,4 +1,4 @@
-# Jarvis — Design System
+# Sazed — Design System
 
 ## Estética: "Late Night Study"
 
@@ -71,7 +71,7 @@ Referencias visuales: Notion dark, Raycast, Linear, Lofi Girl artwork.
 ## Componentes
 
 ### Chat bubbles
-- **Jarvis**: fondo `--surface2`, borde izq `2px solid --violet`, sin borde exterior
+- **Sazed**: fondo `--surface2`, borde izq `2px solid --violet`, sin borde exterior
 - **Usuario**: fondo `--violet-bg`, borde `1px solid --violet-dim`
 - **Border radius**: 10px (bottom-left/right 2px según lado)
 

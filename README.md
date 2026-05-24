@@ -1,4 +1,4 @@
-# Jarvis — Tutor de Estudio con IA
+# Sazed — Tutor de Estudio con IA
 
 Tutor personal de estudio con voz, visión de pantalla y acceso a tus apuntes. Powered by Google Gemini + NotebookLM.
 
@@ -39,7 +39,7 @@ Abre **Chrome** en `http://localhost:8000`.
 | Elemento | Función |
 |----------|---------|
 | 🎤 / **F2** | Iniciar/parar grabación de voz |
-| ⏹ | Interrumpir a Jarvis mientras habla |
+| ⏹ | Interrumpir a Sazed mientras habla |
 | 🔊 Voz | Activar/desactivar texto a voz |
 | ⚙️ Ajustes | Cambiar API key, notebook activo |
 | Panel derecho | Fragmento de tus apuntes usado en la respuesta |
@@ -63,7 +63,7 @@ python cli.py list
 
 ---
 
-## Usar Jarvis para varios proyectos o asignaturas
+## Usar Sazed para varios proyectos o asignaturas
 
 Puedes tener notebooks separados en NotebookLM — uno por asignatura o proyecto. Cada uno tiene sus propios apuntes y su historial de sesiones independiente.
 

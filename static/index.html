@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Jarvis — Tutor</title>
+<title>Sazed — Tutor</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -12,7 +12,7 @@
 <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <style>
-/* ── Design tokens ── */
+/* ── Design tokens — dark (default) ── */
 :root {
   --bg:           #0e0e14;
   --surface:      #16161f;
@@ -47,6 +47,36 @@
   --transition:   150ms ease;
 }
 
+/* ── Light mode overrides ── */
+body.light {
+  --bg:           #f4f4f8;
+  --surface:      #ffffff;
+  --surface2:     #eeeef5;
+  --surface3:     #e4e4ef;
+  --border:       #d0d0df;
+  --border-s:     #a8a8c0;
+
+  --violet:       #6d28d9;
+  --violet-dim:   #5b21b6;
+  --violet-bg:    #ede9fe;
+
+  --amber:        #d97706;
+  --amber-dim:    #b45309;
+  --amber-bg:     #fef3c7;
+
+  --green:        #059669;
+  --green-bg:     rgba(5,150,105,0.10);
+  --orange:       #ea580c;
+  --orange-bg:    rgba(234,88,12,0.10);
+  --red:          #dc2626;
+  --blue:         #2563eb;
+
+  --text:         #1a1a2e;
+  --text-dim:     #4a4a6a;
+  --text-muted:   #7878a0;
+  --text-user:    #2d1b6e;
+}
+
 /* ── Reset ── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 body {
@@ -59,6 +89,7 @@ body {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  transition: background var(--transition), color var(--transition);
 }
 
 /* ── Scrollbar ── */
@@ -95,7 +126,12 @@ header {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
+  font-size: 13px;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -0.02em;
+  font-family: 'Inter', sans-serif;
+  flex-shrink: 0;
 }
 .brand-name {
   font-size: 0.95rem;
@@ -323,7 +359,7 @@ main {
   flex: 1;
   min-height: 0;
   display: grid;
-  grid-template-columns: 1fr 330px;
+  grid-template-columns: 1fr 400px;
   overflow: hidden;
 }
 
@@ -379,6 +415,14 @@ main {
   border-radius: 2px var(--radius) var(--radius) 2px;
   color: var(--text);
 }
+.msg.whiteboard .msg-bubble {
+  background: var(--amber-bg);
+  border-left: 2px solid var(--amber);
+  border-radius: 2px var(--radius) var(--radius) 2px;
+  color: var(--text);
+  font-size: 0.82rem;
+}
+.msg.whiteboard .msg-label { color: var(--amber); }
 
 /* Math & markdown in bubbles */
 .msg-bubble .katex-display { margin: 10px 0; overflow-x: auto; }
@@ -431,6 +475,7 @@ main {
   gap: 8px;
   align-items: center;
   background: var(--surface);
+  position: relative;
 }
 
 #mic-btn {
@@ -472,6 +517,27 @@ main {
 }
 #stop-btn:hover { background: rgba(96,165,250,0.2); }
 
+/* Screenshot capture button */
+#screenshot-btn {
+  width: 38px; height: 38px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--text-muted);
+  font-size: 1rem;
+  cursor: pointer;
+  flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  transition: var(--transition);
+}
+#screenshot-btn:hover { border-color: var(--border-s); color: var(--text); background: var(--surface3); }
+#screenshot-btn.capturing {
+  border-color: var(--amber);
+  color: var(--amber);
+  background: var(--amber-bg);
+  animation: mic-pulse 1s ease-in-out infinite;
+}
+
 #text-input {
   flex: 1;
   background: var(--surface2);
@@ -501,6 +567,177 @@ main {
   flex-shrink: 0;
 }
 #send-btn:hover { background: var(--violet); }
+
+/* ── Hint button ── */
+#hint-btn {
+  padding: 0 11px;
+  height: 38px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-s);
+  color: var(--amber);
+  font-size: 0.78rem;
+  font-family: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: all var(--transition);
+}
+#hint-btn:hover { border-color: var(--amber); background: var(--amber-bg); }
+#hint-badge {
+  min-width: 14px; height: 14px;
+  background: var(--amber);
+  color: #000;
+  border-radius: 99px;
+  font-size: 0.6rem;
+  font-weight: 700;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 0 3px;
+}
+#hint-badge.visible { display: flex; }
+
+/* ── Image upload ── */
+#img-upload-btn {
+  width: 38px; height: 38px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--text-muted);
+  font-size: 1rem;
+  cursor: pointer;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition);
+}
+#img-upload-btn:hover { border-color: var(--border-s); color: var(--text); background: var(--surface3); }
+#img-upload-btn.has-image { border-color: var(--green); color: var(--green); background: var(--green-bg); }
+#img-input { display: none; }
+
+/* Image preview in chat */
+.msg-image {
+  margin-top: 6px;
+  max-width: 260px;
+  border-radius: var(--radius-s);
+  border: 1px solid var(--border);
+  opacity: 0.85;
+  display: block;
+}
+
+/* ── Mode picker (dropdown above input) ── */
+#mode-picker {
+  position: relative;
+  flex-shrink: 0;
+}
+
+#mode-current-btn {
+  height: 38px;
+  padding: 0 10px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-s);
+  color: var(--text-dim);
+  font-size: 0.75rem;
+  font-family: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: all var(--transition);
+  white-space: nowrap;
+}
+#mode-current-btn:hover { border-color: var(--border-s); color: var(--text); background: var(--surface3); }
+#mode-current-btn.pizarra-active {
+  border-color: var(--amber);
+  color: var(--amber);
+  background: var(--amber-bg);
+  animation: wb-pulse 2s ease-in-out infinite;
+}
+@keyframes wb-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(245,158,11,0.2); }
+  50%       { box-shadow: 0 0 0 4px rgba(245,158,11,0); }
+}
+.mode-arrow { font-size: 0.6rem; opacity: 0.7; transition: transform var(--transition); }
+#mode-current-btn.open .mode-arrow { transform: rotate(180deg); }
+
+#mode-dropdown {
+  display: none;
+  position: absolute;
+  bottom: calc(100% + 6px);
+  right: 0;
+  background: var(--surface);
+  border: 1px solid var(--border-s);
+  border-radius: var(--radius);
+  box-shadow: 0 -12px 32px rgba(0,0,0,0.4);
+  min-width: 220px;
+  z-index: 100;
+  overflow: hidden;
+}
+#mode-dropdown.open { display: block; }
+
+.mode-opt {
+  width: 100%;
+  padding: 9px 14px;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-dim);
+  font-family: inherit;
+  cursor: pointer;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  transition: background var(--transition);
+}
+.mode-opt:last-child { border-bottom: none; }
+.mode-opt:hover { background: var(--surface2); }
+.mode-opt.active { background: var(--violet-bg); }
+.mode-opt.active .mode-opt-name { color: var(--violet); }
+.mode-opt-name {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.mode-opt-check { color: var(--violet); font-size: 0.7rem; }
+.mode-opt-desc {
+  font-size: 0.67rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+/* Pizarra interval row */
+#pizarra-interval-row {
+  padding: 8px 14px;
+  background: var(--amber-bg);
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  display: none;
+}
+#pizarra-interval-row.visible { display: flex; }
+.pz-label { font-size: 0.68rem; color: var(--amber); font-weight: 600; }
+#pizarra-interval {
+  background: var(--surface2);
+  border: 1px solid var(--amber-dim);
+  border-radius: 4px;
+  padding: 2px 6px;
+  color: var(--text);
+  font-size: 0.72rem;
+  font-family: inherit;
+  outline: none;
+}
 
 /* ══════════════════════════════════
    SIDEBAR
@@ -638,9 +875,9 @@ main {
   border: 1px solid var(--border-s);
   border-radius: var(--radius-l);
   padding: 24px;
-  width: 600px;
+  width: 700px;
   max-width: 94vw;
-  max-height: 80vh;
+  max-height: 85vh;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -654,13 +891,19 @@ main {
 #src-modal-content {
   flex: 1;
   overflow-y: auto;
-  font-size: 0.82rem;
-  line-height: 1.75;
-  color: var(--text-dim);
-  white-space: pre-wrap;
-  background: var(--surface2);
   border-radius: var(--radius-s);
-  padding: 12px 14px;
+  min-height: 100px;
+}
+#src-modal-content img {
+  width: 100%;
+  border-radius: var(--radius-s);
+  display: block;
+}
+#src-modal-content .src-loading {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  padding: 20px 0;
+  text-align: center;
 }
 #src-modal-close {
   align-self: flex-end;
@@ -676,29 +919,24 @@ main {
 }
 #src-modal-close:hover { background: var(--surface2); color: var(--text); }
 
-/* Screenshot box */
-#screenshot-box {
-  border-top: 1px solid var(--border);
-  padding: 8px;
+/* ──────────────────────────────────
+   SIDEBAR EXPAND
+────────────────────────────────── */
+#sidebar-toggle {
+  margin-left: auto;
+  padding: 3px 8px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-s);
+  color: var(--text-muted);
+  font-size: 0.68rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all var(--transition);
   flex-shrink: 0;
 }
-.ss-title {
-  font-size: 0.65rem;
-  font-weight: 700;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
-  padding-bottom: 6px;
-}
-#screenshot-img {
-  width: 100%;
-  max-height: 150px;
-  object-fit: contain;
-  border-radius: var(--radius-s);
-  border: 1px solid var(--border);
-  display: none;
-  opacity: 0.85;
-}
+#sidebar-toggle:hover { color: var(--text); border-color: var(--border-s); background: var(--surface2); }
+main.sidebar-wide { grid-template-columns: 1fr minmax(0, 50%); }
 
 /* ──────────────────────────────────
    PLAN TAB
@@ -807,6 +1045,87 @@ main {
 .ex-status { font-size: 0.65rem; margin-top: 4px; font-weight: 600; }
 .ex-status.ok      { color: var(--green); }
 .ex-status.pending { color: var(--orange); }
+
+/* ──────────────────────────────────
+   BLOCKS SECTION (Ejercicios tab)
+────────────────────────────────── */
+.blocks-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px 4px;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--border);
+}
+.blocks-title {
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-muted);
+}
+#detect-blocks-btn, #gen-ex-btn {
+  padding: 3px 10px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-s);
+  color: var(--text-muted);
+  font-size: 0.68rem;
+  font-family: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+#detect-blocks-btn:hover { border-color: var(--orange); color: var(--orange); }
+.block-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--orange-bg);
+  border: 1px solid rgba(251,146,60,0.3);
+  border-radius: 20px;
+  padding: 2px 8px 2px 6px;
+  font-size: 0.68rem;
+  color: var(--orange);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition);
+  margin: 2px;
+}
+.block-chip:hover { background: rgba(251,146,60,0.2); }
+.block-chip .chip-count { font-size: 0.6rem; opacity: 0.7; }
+#blocks-area { padding: 6px 10px; flex-shrink: 0; display: flex; flex-wrap: wrap; min-height: 30px; }
+.gen-ex-form {
+  padding: 8px 10px;
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+  display: none;
+  flex-direction: column;
+  gap: 5px;
+}
+.gen-ex-form.visible { display: flex; }
+.gen-ex-form select {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-s);
+  padding: 4px 8px;
+  color: var(--text);
+  font-size: 0.78rem;
+  font-family: inherit;
+  outline: none;
+}
+#gen-ex-result {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-s);
+  padding: 10px 12px;
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  line-height: 1.6;
+  display: none;
+  margin-top: 4px;
+}
+#gen-ex-result.visible { display: block; }
 </style>
 </head>
 <body>
@@ -814,8 +1133,8 @@ main {
 <!-- ══ HEADER ══ -->
 <header>
   <div class="brand">
-    <div class="brand-icon">🤖</div>
-    <span class="brand-name">Jarvis</span>
+    <div class="brand-icon">S</div>
+    <span class="brand-name">Sazed</span>
   </div>
 
   <!-- Lofi Radio -->
@@ -835,7 +1154,8 @@ main {
 
   <div class="header-actions">
     <span class="shortcut-hint">Hablar: <kbd id="shortcut-key">F2</kbd></span>
-    <button id="tts-btn" class="hdr-btn" title="Activar/desactivar voz de Jarvis">🔊 Voz</button>
+    <button id="tts-btn" class="hdr-btn" title="Activar/desactivar voz">🔊 Voz</button>
+    <button id="theme-btn" class="hdr-btn" title="Cambiar tema">☀️</button>
     <button id="settings-btn" class="hdr-btn" title="Ajustes">⚙️</button>
     <span id="status">Conectando...</span>
   </div>
@@ -882,12 +1202,58 @@ main {
       <div class="typing-dot"></div>
       <div class="typing-dot"></div>
       <div class="typing-dot"></div>
-      <span id="typing-label">Jarvis está pensando...</span>
+      <span id="typing-label">Sazed está pensando...</span>
     </div>
     <div id="input-area">
       <button id="mic-btn" title="F2 — iniciar/parar grabación">🎤</button>
       <button id="stop-btn" title="Interrumpir respuesta">⏹</button>
+      <label id="img-upload-btn" title="Adjuntar imagen (📎)">
+        📎
+        <input id="img-input" type="file" accept="image/*">
+      </label>
+      <button id="screenshot-btn" title="Captura de pantalla → Sazed (F3)">📸</button>
       <input id="text-input" type="text" placeholder="Escribe o pulsa F2 para hablar..." />
+      <button id="hint-btn" title="Pedir pista (niveles 1→4)">
+        💡 Pista <span id="hint-badge"></span>
+      </button>
+      <!-- Mode picker -->
+      <div id="mode-picker">
+        <button id="mode-current-btn" title="Cambiar modo">
+          <span id="mode-current-label">🎓 Tutor</span>
+          <span class="mode-arrow">▲</span>
+        </button>
+        <div id="mode-dropdown">
+          <button class="mode-opt active" data-mode="tutor">
+            <span class="mode-opt-name">🎓 Tutor <span class="mode-opt-check">✓</span></span>
+            <span class="mode-opt-desc">Guía paso a paso con preguntas Socráticas</span>
+          </button>
+          <button class="mode-opt" data-mode="examen">
+            <span class="mode-opt-name">📝 Examen <span class="mode-opt-check" style="display:none">✓</span></span>
+            <span class="mode-opt-desc">Solo valida tu razonamiento, nunca revela la respuesta</span>
+          </button>
+          <button class="mode-opt" data-mode="explicacion">
+            <span class="mode-opt-name">📖 Explicar <span class="mode-opt-check" style="display:none">✓</span></span>
+            <span class="mode-opt-desc">Explica el concepto completo con ejemplos</span>
+          </button>
+          <button class="mode-opt" data-mode="companero">
+            <span class="mode-opt-name">🤝 Compañero <span class="mode-opt-check" style="display:none">✓</span></span>
+            <span class="mode-opt-desc">Resuelve contigo como compañero de estudio</span>
+          </button>
+          <button class="mode-opt" data-mode="pizarra">
+            <span class="mode-opt-name">🖊 Pizarra <span class="mode-opt-check" style="display:none">✓</span></span>
+            <span class="mode-opt-desc">Captura tu pantalla periódicamente y da feedback breve</span>
+          </button>
+          <div id="pizarra-interval-row">
+            <span class="pz-label">Intervalo:</span>
+            <select id="pizarra-interval">
+              <option value="20">20 s</option>
+              <option value="30" selected>30 s</option>
+              <option value="60">60 s</option>
+              <option value="120">2 min</option>
+            </select>
+          </div>
+        </div>
+      </div>
       <button id="send-btn">Enviar</button>
     </div>
   </section>
@@ -898,6 +1264,7 @@ main {
       <button class="tab-btn active" data-tab="apuntes">Apuntes</button>
       <button class="tab-btn"        data-tab="plan">Plan</button>
       <button class="tab-btn"        data-tab="ejercicios">Ejercicios</button>
+      <button id="sidebar-toggle" title="Expandir/comprimir panel">⇔</button>
     </div>
 
     <!-- Tab: Apuntes -->
@@ -906,10 +1273,6 @@ main {
       <div id="sources-panel">
         <div class="sources-label">Fuentes citadas</div>
         <div id="sources-list"></div>
-      </div>
-      <div id="screenshot-box">
-        <div class="ss-title">Pantalla capturada</div>
-        <img id="screenshot-img" alt="Captura de pantalla" />
       </div>
     </div>
 
@@ -929,6 +1292,22 @@ main {
 
     <!-- Tab: Ejercicios -->
     <div id="tab-ejercicios" class="tab-panel">
+      <div class="blocks-header">
+        <span class="blocks-title">Bloqueos</span>
+        <button id="detect-blocks-btn" title="Analizar historial de errores">Analizar</button>
+      </div>
+      <div id="blocks-area"></div>
+      <div class="gen-ex-form" id="gen-ex-form">
+        <span style="font-size:0.65rem;color:var(--text-muted)">Tema: <b id="gen-ex-topic-label" style="color:var(--orange)"></b></span>
+        <select id="gen-ex-level">
+          <option value="basico">Básico</option>
+          <option value="intermedio" selected>Intermedio</option>
+          <option value="examen">Dificultad examen</option>
+          <option value="mixto">Problema mixto</option>
+        </select>
+        <button id="gen-ex-btn">Generar ejercicio</button>
+        <div id="gen-ex-result"></div>
+      </div>
       <div id="exercises-box" class="panel-scroll">Los ejercicios resueltos en cada sesión aparecerán aquí automáticamente.</div>
     </div>
   </aside>
@@ -995,10 +1374,28 @@ radioToggle.addEventListener('click', radioTogglePlay);
 radioPlayer.addEventListener('playing', () => { radioPlaying = true; radioToggle.classList.add('playing'); });
 radioPlayer.addEventListener('pause',   () => { radioPlaying = false; radioToggle.classList.remove('playing'); });
 radioPlayer.addEventListener('error',   () => {
-  // Auto-advance on stream error
   const next = (parseInt(radioSelect.value) + 1) % STATIONS.length;
   radioSelect.value = next;
   setTimeout(radioTogglePlay, 1500);
+});
+
+/* ════════════════════════════════════
+   THEME TOGGLE
+════════════════════════════════════ */
+const themeBtn = document.getElementById('theme-btn');
+let isLight = localStorage.getItem('sazed-theme') === 'light';
+
+function applyTheme() {
+  document.body.classList.toggle('light', isLight);
+  themeBtn.textContent = isLight ? '🌙' : '☀️';
+  themeBtn.title = isLight ? 'Cambiar a modo oscuro' : 'Cambiar a modo claro';
+}
+applyTheme();
+
+themeBtn.addEventListener('click', () => {
+  isLight = !isLight;
+  localStorage.setItem('sazed-theme', isLight ? 'light' : 'dark');
+  applyTheme();
 });
 
 /* ════════════════════════════════════
@@ -1006,7 +1403,6 @@ radioPlayer.addEventListener('error',   () => {
 ════════════════════════════════════ */
 const messagesEl   = document.getElementById('messages');
 const contextEl    = document.getElementById('context-box');
-const screenshotEl = document.getElementById('screenshot-img');
 const typingEl     = document.getElementById('typing');
 const statusEl     = document.getElementById('status');
 const textInput    = document.getElementById('text-input');
@@ -1028,6 +1424,10 @@ let ttsEnabled = true;
 let pushKey    = 'F2';
 let isRecording = false;
 let accumulatedTranscript = '';
+let currentMode   = 'tutor';
+let currentHintLevel = 0;
+let pendingImageB64 = null;
+let genExTopic = '';
 
 const KATEX_OPTS = {
   delimiters: [
@@ -1043,17 +1443,37 @@ function connect() {
 
   ws.onmessage = (ev) => {
     const msg = JSON.parse(ev.data);
+
     if (msg.type === 'welcome' || msg.type === 'response') {
       setTyping(false);
       addMessage('jarvis', msg.text);
       updateContext(msg.context || '');
       updateReferences(msg.references || []);
-      updateScreenshot(msg.screenshot);
       if (msg.audio) playTTS(msg.audio);
       if (msg.exit) setStatus('Sesión terminada', '');
+      if (typeof msg.hint_level === 'number') setHintLevel(msg.hint_level);
+      if (msg.mode) syncMode(msg.mode);
+
+    } else if (msg.type === 'screen_capture_response') {
+      setTyping(false);
+      addMessage('jarvis', msg.text, null, msg.screenshot);
+      updateContext(msg.context || '');
+      updateReferences(msg.references || []);
+      if (msg.audio) playTTS(msg.audio);
+      screenshotBtn.classList.remove('capturing');
+
+    } else if (msg.type === 'whiteboard_feedback') {
+      addMessage('whiteboard', msg.text, null, msg.screenshot);
+      if (msg.audio) playTTS(msg.audio);
+
+    } else if (msg.type === 'mode_ack') {
+      syncMode(msg.mode);
+
     } else if (msg.type === 'error') {
       setTyping(false);
       addMessage('jarvis', '⚠️ ' + msg.text);
+      screenshotBtn.classList.remove('capturing');
+
     } else if (msg.type === 'setup_required') {
       setTyping(false);
       addMessage('jarvis', `⚠️ **Configuración necesaria**\n\n${msg.text}`);
@@ -1067,10 +1487,31 @@ function connect() {
 
 function send(text) {
   if (!ws || ws.readyState !== WebSocket.OPEN || !text.trim()) return;
-  addMessage('user', text);
+  const payload = { type: 'message', text };
+  if (pendingImageB64) {
+    payload.image = pendingImageB64;
+    pendingImageB64 = null;
+    imgUploadBtn.classList.remove('has-image');
+    imgInput.value = '';
+  }
+  addMessage('user', text, payload.image);
   setTyping(true);
-  ws.send(JSON.stringify({ type: 'message', text }));
+  ws.send(JSON.stringify(payload));
   textInput.value = '';
+}
+
+function sendHint() {
+  if (!ws || ws.readyState !== WebSocket.OPEN) return;
+  setTyping(true);
+  ws.send(JSON.stringify({ type: 'hint' }));
+  addMessage('user', '💡 Pista');
+}
+
+function captureScreen() {
+  if (!ws || ws.readyState !== WebSocket.OPEN) return;
+  screenshotBtn.classList.add('capturing');
+  addMessage('user', '📸 Captura de pantalla');
+  ws.send(JSON.stringify({ type: 'capture_screen' }));
 }
 
 /* ── UI helpers ── */
@@ -1083,18 +1524,33 @@ function setTyping(active) {
   typingEl.classList.toggle('active', active);
 }
 
-function addMessage(role, text) {
+function addMessage(role, text, imageB64, screenshotB64) {
   const div = document.createElement('div');
-  div.className = `msg ${role}`;
+  div.className = `msg ${role === 'whiteboard' ? 'whiteboard jarvis' : role}`;
 
   const label = document.createElement('div');
   label.className = 'msg-label';
-  label.textContent = role === 'user' ? 'Tú' : 'Jarvis';
+  label.textContent = role === 'user' ? 'Tú' : role === 'whiteboard' ? '🖊 Pizarra' : 'Sazed';
 
   const bubble = document.createElement('div');
   bubble.className = 'msg-bubble';
   bubble.innerHTML = marked.parse(text);
   renderMathInElement(bubble, KATEX_OPTS);
+
+  if (imageB64) {
+    const img = document.createElement('img');
+    img.className = 'msg-image';
+    img.src = 'data:image/png;base64,' + imageB64;
+    bubble.appendChild(img);
+  }
+
+  if (screenshotB64) {
+    const img = document.createElement('img');
+    img.className = 'msg-image';
+    img.src = 'data:image/png;base64,' + screenshotB64;
+    img.style.maxWidth = '100%';
+    bubble.appendChild(img);
+  }
 
   div.appendChild(label);
   div.appendChild(bubble);
@@ -1137,7 +1593,6 @@ function updateReferences(refs) {
     header.appendChild(title);
     card.appendChild(header);
 
-    // Show first cited text snippet
     const firstText = ref.cited_texts?.[0];
     if (firstText) {
       const cited = document.createElement('div');
@@ -1145,22 +1600,14 @@ function updateReferences(refs) {
       cited.textContent = firstText;
       card.appendChild(cited);
 
-      // "Ver contexto completo" button
       const moreBtn = document.createElement('button');
       moreBtn.className = 'src-more-btn';
-      moreBtn.textContent = 'Ver contexto en la fuente →';
+      moreBtn.textContent = 'Ver extracto →';
       moreBtn.addEventListener('click', () => openSourceContext(ref, firstText));
       card.appendChild(moreBtn);
     }
 
     sourcesList.appendChild(card);
-  }
-}
-
-function updateScreenshot(b64) {
-  if (b64) {
-    screenshotEl.src = 'data:image/png;base64,' + b64;
-    screenshotEl.style.display = 'block';
   }
 }
 
@@ -1247,7 +1694,7 @@ function stopRec() {
   recognition.stop();
 }
 
-/* ── Keyboard ── */
+/* ── Keyboard shortcuts ── */
 textInput.addEventListener('keydown', e => {
   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(textInput.value); }
 });
@@ -1259,9 +1706,17 @@ document.addEventListener('keydown', e => {
     e.preventDefault();
     isRecording ? stopRec() : startRec();
   }
+  if (e.key === 'F3') {
+    e.preventDefault();
+    captureScreen();
+  }
 });
 
 document.getElementById('shortcut-key').textContent = pushKey;
+
+/* ── Screenshot button ── */
+const screenshotBtn = document.getElementById('screenshot-btn');
+screenshotBtn.addEventListener('click', captureScreen);
 
 /* ── Settings modal ── */
 const overlay     = document.getElementById('modal-overlay');
@@ -1298,24 +1753,36 @@ modalSave.addEventListener('click', async () => {
 });
 
 /* ════════════════════════════════════
-   SOURCE CONTEXT MODAL
+   SOURCE CONTEXT MODAL (screenshot)
 ════════════════════════════════════ */
 async function openSourceContext(ref, citedText) {
   srcModalTitle.textContent = ref.title || 'Fuente';
-  srcModalContent.textContent = 'Cargando contexto...';
+  srcModalContent.innerHTML = '<div class="src-loading">Generando captura del extracto...</div>';
   srcModal.classList.add('open');
 
   try {
-    const res = await fetch('/api/source-context', {
+    const res = await fetch('/api/source-image', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ source_id: ref.source_id, cited_text: citedText }),
+      body: JSON.stringify({ source_id: ref.source_id, cited_text: citedText, title: ref.title }),
     });
     const data = await res.json();
     if (data.error) throw new Error(data.error);
-    srcModalContent.textContent = data.content || '(Sin contenido disponible)';
+    srcModalContent.innerHTML = `<img src="data:image/png;base64,${data.image}" alt="Extracto de fuente">`;
   } catch(e) {
-    srcModalContent.textContent = '⚠ No se pudo cargar el contexto: ' + e.message;
+    // Fallback to text
+    try {
+      const res2 = await fetch('/api/source-context', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ source_id: ref.source_id, cited_text: citedText }),
+      });
+      const data2 = await res2.json();
+      srcModalContent.style.cssText = 'font-size:0.82rem;line-height:1.75;color:var(--text-dim);white-space:pre-wrap;background:var(--surface2);border-radius:6px;padding:12px 14px;';
+      srcModalContent.textContent = data2.content || '(Sin contenido disponible)';
+    } catch {
+      srcModalContent.textContent = '⚠ No se pudo cargar: ' + e.message;
+    }
   }
 }
 
@@ -1357,7 +1824,6 @@ async function loadPlan() {
       planBoxEl.innerHTML = '<p style="color:var(--text-muted);padding:4px">Rellena el formulario para crear tu plan personalizado.</p>';
       return;
     }
-    // Pre-fill form
     const pfExam = document.getElementById('pf-exam');
     if (plan.exam_date)    pfExam.value = plan.exam_date;
     if (plan.topics?.length)        document.getElementById('pf-topics').value = plan.topics.join(', ');
@@ -1372,7 +1838,6 @@ async function loadPlan() {
       Examen: ${plan.exam_date} — <span style="color:${daysColor}">${daysLeft} días</span>
     </div>`;
 
-    // Group by week
     const byWeek = {};
     for (const day of plan.days || []) {
       const w = day.week || 1;
@@ -1467,7 +1932,6 @@ async function loadExercises() {
       return;
     }
 
-    // Group by topic
     const byTopic = {};
     for (const ex of [...exercises].reverse()) {
       const t = ex.topic || 'General';
@@ -1500,6 +1964,200 @@ async function loadExercises() {
     exBoxEl.innerHTML = '<p style="color:var(--text-muted)">Error al cargar los ejercicios.</p>';
   }
 }
+
+/* ════════════════════════════════════
+   MODE DROPDOWN
+════════════════════════════════════ */
+const modeCurrentBtn   = document.getElementById('mode-current-btn');
+const modeCurrentLabel = document.getElementById('mode-current-label');
+const modeDropdown     = document.getElementById('mode-dropdown');
+const pizarraRow       = document.getElementById('pizarra-interval-row');
+const pizarraInterval  = document.getElementById('pizarra-interval');
+
+const MODE_LABELS = {
+  tutor:      '🎓 Tutor',
+  examen:     '📝 Examen',
+  explicacion:'📖 Explicar',
+  companero:  '🤝 Compañero',
+  pizarra:    '🖊 Pizarra',
+};
+
+function openModeDropdown() {
+  modeDropdown.classList.toggle('open');
+  modeCurrentBtn.classList.toggle('open');
+}
+
+function closeModeDropdown() {
+  modeDropdown.classList.remove('open');
+  modeCurrentBtn.classList.remove('open');
+}
+
+modeCurrentBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  openModeDropdown();
+});
+
+document.addEventListener('click', () => closeModeDropdown());
+modeDropdown.addEventListener('click', (e) => e.stopPropagation());
+
+document.querySelectorAll('.mode-opt').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const mode = btn.dataset.mode;
+    const interval = parseInt(pizarraInterval.value);
+    closeModeDropdown();
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+      syncMode(mode);
+      return;
+    }
+    ws.send(JSON.stringify({ type: 'set_mode', mode, interval }));
+  });
+});
+
+// Show/hide pizarra interval row
+document.querySelectorAll('.mode-opt').forEach(btn => {
+  btn.addEventListener('mouseenter', () => {
+    pizarraRow.classList.toggle('visible', btn.dataset.mode === 'pizarra');
+  });
+});
+modeDropdown.addEventListener('mouseleave', () => {
+  if (currentMode !== 'pizarra') pizarraRow.classList.remove('visible');
+});
+
+function syncMode(mode) {
+  currentMode = mode;
+  currentHintLevel = 0;
+  setHintLevel(0);
+
+  // Update label
+  modeCurrentLabel.textContent = MODE_LABELS[mode] || mode;
+
+  // Update active state on options
+  document.querySelectorAll('.mode-opt').forEach(b => {
+    const isActive = b.dataset.mode === mode;
+    b.classList.toggle('active', isActive);
+    const check = b.querySelector('.mode-opt-check');
+    if (check) check.style.display = isActive ? '' : 'none';
+  });
+
+  // Pizarra indicator
+  const isPizarra = mode === 'pizarra';
+  modeCurrentBtn.classList.toggle('pizarra-active', isPizarra);
+  if (isPizarra) pizarraRow.classList.add('visible');
+}
+
+/* ════════════════════════════════════
+   HINT BUTTON
+════════════════════════════════════ */
+const hintBtn   = document.getElementById('hint-btn');
+const hintBadge = document.getElementById('hint-badge');
+
+function setHintLevel(level) {
+  currentHintLevel = level;
+  if (level > 0) {
+    hintBadge.textContent = level;
+    hintBadge.classList.add('visible');
+  } else {
+    hintBadge.classList.remove('visible');
+  }
+}
+
+hintBtn.addEventListener('click', sendHint);
+
+/* ════════════════════════════════════
+   IMAGE UPLOAD
+════════════════════════════════════ */
+const imgUploadBtn = document.getElementById('img-upload-btn');
+const imgInput     = document.getElementById('img-input');
+
+imgInput.addEventListener('change', () => {
+  const file = imgInput.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    pendingImageB64 = e.target.result.split(',')[1];
+    imgUploadBtn.classList.add('has-image');
+    imgUploadBtn.title = `📎 ${file.name} — listo para enviar`;
+  };
+  reader.readAsDataURL(file);
+});
+
+/* ════════════════════════════════════
+   SIDEBAR TOGGLE
+════════════════════════════════════ */
+const mainEl = document.querySelector('main');
+document.getElementById('sidebar-toggle').addEventListener('click', () => {
+  mainEl.classList.toggle('sidebar-wide');
+});
+
+/* ════════════════════════════════════
+   BLOCKS + ADAPTIVE EXERCISES
+════════════════════════════════════ */
+const detectBlocksBtn = document.getElementById('detect-blocks-btn');
+const blocksArea      = document.getElementById('blocks-area');
+const genExForm       = document.getElementById('gen-ex-form');
+const genExTopicLabel = document.getElementById('gen-ex-topic-label');
+const genExLevel      = document.getElementById('gen-ex-level');
+const genExBtn        = document.getElementById('gen-ex-btn');
+const genExResult     = document.getElementById('gen-ex-result');
+
+detectBlocksBtn.addEventListener('click', async () => {
+  detectBlocksBtn.textContent = '...';
+  detectBlocksBtn.disabled = true;
+  try {
+    const res  = await fetch('/api/blocks');
+    const data = await res.json();
+    const blocks = data.blocks || [];
+    blocksArea.innerHTML = '';
+    if (!blocks.length) {
+      blocksArea.innerHTML = '<span style="font-size:0.7rem;color:var(--text-muted)">Sin bloqueos detectados</span>';
+    } else {
+      for (const b of blocks) {
+        const chip = document.createElement('span');
+        chip.className = 'block-chip';
+        chip.innerHTML = `${b.topic} <span class="chip-count">×${b.fail_count}</span>`;
+        chip.title = b.detail || b.topic;
+        chip.addEventListener('click', () => {
+          genExTopic = b.topic;
+          genExTopicLabel.textContent = b.topic;
+          genExForm.classList.add('visible');
+          genExResult.classList.remove('visible');
+        });
+        blocksArea.appendChild(chip);
+      }
+    }
+  } finally {
+    detectBlocksBtn.textContent = 'Analizar';
+    detectBlocksBtn.disabled = false;
+  }
+});
+
+genExBtn.addEventListener('click', async () => {
+  if (!genExTopic) return;
+  genExBtn.textContent = 'Generando...';
+  genExBtn.disabled = true;
+  genExResult.classList.remove('visible');
+  try {
+    const res  = await fetch('/api/generate-exercise', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ topic: genExTopic, level: genExLevel.value }),
+    });
+    const ex = await res.json();
+    if (ex.error) throw new Error(ex.error);
+    genExResult.innerHTML = `<b>${ex.problem}</b>`;
+    renderMathInElement(genExResult, KATEX_OPTS);
+    genExResult.classList.add('visible');
+
+    const msg = `Quiero practicar este ejercicio generado:\n\n${ex.problem}`;
+    send(msg);
+  } catch(e) {
+    genExResult.textContent = '⚠ Error: ' + e.message;
+    genExResult.classList.add('visible');
+  } finally {
+    genExBtn.textContent = 'Generar ejercicio';
+    genExBtn.disabled = false;
+  }
+});
 
 /* ════════════════════════════════════
    INIT
